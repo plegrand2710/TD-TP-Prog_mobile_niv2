@@ -3,11 +3,13 @@ package com.TD1.Pauline;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -15,21 +17,23 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class GameScreen extends ScreenAdapter {
 
-    private static final float MOVE_TIME = 0.5F;
+    private static final float MOVE_TIME = 0.5f;
     private static final int GRID_CELL = 32;
     private static final int SNAKE_MOVEMENT = GRID_CELL;
     private static final float WORLD_WIDTH = 640;
     private static final float WORLD_HEIGHT = 480;
-    private static final int RIGHT = 0;
-    private static final int LEFT = 1;
-    private static final int UP = 2;
-    private static final int DOWN = 3;
+    private static final int RIGHT = 0, LEFT = 1, UP = 2, DOWN = 3;
     private static final int POINTS_PER_APPLE = 20;
     private static final String GAME_OVER_TEXT = "Game Over... Tap space to restart!";
 
@@ -38,39 +42,39 @@ public class GameScreen extends ScreenAdapter {
     private Viewport viewport;
     private Camera camera;
     private SpriteBatch batch;
-    private Texture snakeHead;
-    private Texture snakeBody;
-    private Texture apple;
+    private Texture snakeHead, snakeBody, apple;
 
     private boolean appleAvailable = false;
     private float appleX, appleY;
-
     private float timer = MOVE_TIME;
     private float snakeX = 0, snakeY = 0;
     private float snakeXBeforeUpdate = 0, snakeYBeforeUpdate = 0;
-
     private int snakeDirection = RIGHT;
     private boolean directionSet = false;
-
     private int score = 0;
     private Array<BodyPart> bodyParts = new Array<BodyPart>();
-
     private GlyphLayout layout = new GlyphLayout();
 
     private enum STATE { PLAYING, GAME_OVER }
     private STATE state = STATE.PLAYING;
 
-    private String controlMode = "gyroscope";
+    private String controlMode;
+
+    private Stage uiStage;
+    private Touchpad touchpad;
 
     private float debugAngle = 0;
 
     public GameScreen(Game game, String controlMode) {
-        this.controlMode = "gyroscope";
+        this.controlMode = controlMode;
     }
 
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height);
+        if (uiStage != null) {
+            uiStage.getViewport().update(width, height, true);
+        }
     }
 
     @Override
@@ -79,12 +83,44 @@ public class GameScreen extends ScreenAdapter {
         camera.position.set(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 0);
         camera.update();
         viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
+
         bitmapFont = new BitmapFont();
         shapeRenderer = new ShapeRenderer();
         batch = new SpriteBatch();
+
         snakeHead = new Texture(Gdx.files.internal("snakehead.png"));
         snakeBody = new Texture(Gdx.files.internal("snakeBody.png"));
         apple = new Texture(Gdx.files.internal("apple.png"));
+
+        if ("touchpad".equalsIgnoreCase(controlMode)) {
+            uiStage = new Stage(new ScreenViewport());
+            Touchpad.TouchpadStyle touchpadStyle = new Touchpad.TouchpadStyle();
+
+            Pixmap bgPixmap = new Pixmap(100, 100, Pixmap.Format.RGBA8888);
+            bgPixmap.setColor(Color.GRAY);
+            bgPixmap.fillCircle(50, 50, 50);
+            Texture bgTexture = new Texture(bgPixmap);
+            bgPixmap.dispose();
+
+            Pixmap knobPixmap = new Pixmap(50, 50, Pixmap.Format.RGBA8888);
+            knobPixmap.setColor(Color.DARK_GRAY);
+            knobPixmap.fillCircle(25, 25, 25);
+            Texture knobTexture = new Texture(knobPixmap);
+            knobPixmap.dispose();
+
+            touchpadStyle.background = new TextureRegionDrawable(bgTexture);
+            touchpadStyle.knob = new TextureRegionDrawable(knobTexture);
+
+            touchpad = new Touchpad(10, touchpadStyle);
+            touchpad.setBounds(15, 15, 200, 200);
+            uiStage.addActor(touchpad);
+
+            InputMultiplexer multiplexer = new InputMultiplexer();
+            multiplexer.addProcessor(uiStage);
+            Gdx.input.setInputProcessor(multiplexer);
+        } else {
+            Gdx.input.setInputProcessor(null);
+        }
     }
 
     @Override
@@ -103,7 +139,13 @@ public class GameScreen extends ScreenAdapter {
         clearScreen();
         drawGrid();
         draw();
-        drawDebugArrow();
+        if ("touchpad".equalsIgnoreCase(controlMode) && uiStage != null) {
+            uiStage.act(delta);
+            uiStage.draw();
+        }
+        if ("gyroscope".equalsIgnoreCase(controlMode)) {
+            drawDebugArrow();
+        }
     }
 
     private void queryInput() {
@@ -134,12 +176,33 @@ public class GameScreen extends ScreenAdapter {
                     debugAngle = 180;
                 }
             }
+        } else if ("touchpad".equalsIgnoreCase(controlMode)) {
+            float knobX = touchpad.getKnobPercentX();
+            float knobY = touchpad.getKnobPercentY();
+            float threshold = 0.3f;
+            if (Math.abs(knobX) > Math.abs(knobY)) {
+                if (knobX > threshold) {
+                    updateDirection(RIGHT);
+                } else if (knobX < -threshold) {
+                    updateDirection(LEFT);
+                }
+            } else {
+                if (knobY > threshold) {
+                    updateDirection(UP);
+                } else if (knobY < -threshold) {
+                    updateDirection(DOWN);
+                }
+            }
+        } else {
+            if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) updateDirection(LEFT);
+            if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) updateDirection(RIGHT);
+            if (Gdx.input.isKeyPressed(Input.Keys.UP)) updateDirection(UP);
+            if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) updateDirection(DOWN);
         }
     }
 
     private void checkForRestart() {
-        if (Gdx.input.isKeyPressed(Input.Keys.SPACE))
-            doRestart();
+        if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) doRestart();
     }
 
     private void doRestart() {
@@ -307,7 +370,6 @@ public class GameScreen extends ScreenAdapter {
 
     private void drawDebugArrow() {
         if ("gyroscope".equalsIgnoreCase(controlMode)) {
-            // Position de base pour la flèche
             float debugX = viewport.getWorldWidth() - 100;
             float debugY = viewport.getWorldHeight() - 100;
             float arrowLength = 50;
@@ -332,6 +394,8 @@ public class GameScreen extends ScreenAdapter {
         apple.dispose();
         bitmapFont.dispose();
         shapeRenderer.dispose();
+        if (uiStage != null)
+            uiStage.dispose();
     }
 
     private class BodyPart {
