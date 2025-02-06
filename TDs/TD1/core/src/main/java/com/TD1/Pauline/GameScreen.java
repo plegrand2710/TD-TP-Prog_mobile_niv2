@@ -20,6 +20,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class GameScreen extends ScreenAdapter {
+
     private static final float MOVE_TIME = 0.5F;
     private static final int GRID_CELL = 32;
     private static final int SNAKE_MOVEMENT = GRID_CELL;
@@ -40,30 +41,41 @@ public class GameScreen extends ScreenAdapter {
     private Texture snakeHead;
     private Texture snakeBody;
     private Texture apple;
+
     private boolean appleAvailable = false;
     private float appleX, appleY;
+
     private float timer = MOVE_TIME;
     private float snakeX = 0, snakeY = 0;
     private float snakeXBeforeUpdate = 0, snakeYBeforeUpdate = 0;
+
     private int snakeDirection = RIGHT;
     private boolean directionSet = false;
-    private int score = 0;
-    private Array<BodyPart> bodyParts = new Array<>();
-    private GlyphLayout layout = new GlyphLayout();
-    private String controlMode;
 
-    private enum STATE {
-        PLAYING, GAME_OVER
-    }
+    private int score = 0;
+    private Array<BodyPart> bodyParts = new Array<BodyPart>();
+
+    private GlyphLayout layout = new GlyphLayout();
+
+    private enum STATE { PLAYING, GAME_OVER }
     private STATE state = STATE.PLAYING;
 
+    private String controlMode = "gyroscope";
+
+    private float debugAngle = 0;
+
     public GameScreen(Game game, String controlMode) {
-        this.controlMode = controlMode;
+        this.controlMode = "gyroscope";
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        viewport.update(width, height);
     }
 
     @Override
     public void show() {
-        camera = new OrthographicCamera(WORLD_WIDTH, WORLD_HEIGHT);
+        camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.position.set(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 0);
         camera.update();
         viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
@@ -77,39 +89,57 @@ public class GameScreen extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
-        clearScreen();
-        if (state == STATE.PLAYING) {
-            queryInput();
-            updateSnake(delta);
-            checkAppleCollision();
-            checkAndPlaceApple();
-        } else if (state == STATE.GAME_OVER) {
-            checkForRestart();
+        switch (state) {
+            case PLAYING:
+                queryInput();
+                updateSnake(delta);
+                checkAppleCollision();
+                checkAndPlaceApple();
+                break;
+            case GAME_OVER:
+                checkForRestart();
+                break;
         }
+        clearScreen();
+        drawGrid();
         draw();
+        drawDebugArrow();
     }
 
     private void queryInput() {
-        // Pour tester, on utilise les flèches du clavier, quelle que soit la valeur de controlMode.
-        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) && snakeDirection != LEFT && !directionSet) {
-            snakeDirection = RIGHT;
-            directionSet = true;
-        } else if (Gdx.input.isKeyPressed(Input.Keys.LEFT) && snakeDirection != RIGHT && !directionSet) {
-            snakeDirection = LEFT;
-            directionSet = true;
-        } else if (Gdx.input.isKeyPressed(Input.Keys.UP) && snakeDirection != DOWN && !directionSet) {
-            snakeDirection = UP;
-            directionSet = true;
-        } else if (Gdx.input.isKeyPressed(Input.Keys.DOWN) && snakeDirection != UP && !directionSet) {
-            snakeDirection = DOWN;
-            directionSet = true;
+        if ("gyroscope".equalsIgnoreCase(controlMode)) {
+            float thresholdDegrees = 5f;
+
+            float ax = Gdx.input.getAccelerometerX();
+            float ay = Gdx.input.getAccelerometerY();
+            float az = Gdx.input.getAccelerometerZ();
+
+            float pitch = MathUtils.atan2(-ax, (float) Math.sqrt(ay * ay + az * az)) * MathUtils.radiansToDegrees;
+            float roll = MathUtils.atan2(ay, az) * MathUtils.radiansToDegrees;
+
+            if (Math.abs(pitch) > Math.abs(roll)) {
+                if (pitch > thresholdDegrees) {
+                    updateDirection(UP);
+                    debugAngle = 90;
+                } else if (pitch < -thresholdDegrees) {
+                    updateDirection(DOWN);
+                    debugAngle = 270;
+                }
+            } else {
+                if (roll > thresholdDegrees) {
+                    updateDirection(RIGHT);
+                    debugAngle = 0;
+                } else if (roll < -thresholdDegrees) {
+                    updateDirection(LEFT);
+                    debugAngle = 180;
+                }
+            }
         }
     }
 
     private void checkForRestart() {
-        if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.SPACE))
             doRestart();
-        }
     }
 
     private void doRestart() {
@@ -120,59 +150,35 @@ public class GameScreen extends ScreenAdapter {
         timer = MOVE_TIME;
         snakeX = 0;
         snakeY = 0;
+        snakeXBeforeUpdate = 0;
+        snakeYBeforeUpdate = 0;
         appleAvailable = false;
         score = 0;
     }
 
-    private void clearScreen() {
-        Gdx.gl.glClearColor(Color.BLACK.r, Color.BLACK.g, Color.BLACK.b, Color.BLACK.a);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-    }
-
-    private void draw() {
-        batch.setProjectionMatrix(camera.combined);
-        batch.begin();
-        batch.draw(snakeHead, snakeX, snakeY);
-        for (BodyPart bodyPart : bodyParts) {
-            bodyPart.draw(batch);
-        }
-        if (appleAvailable) {
-            batch.draw(apple, appleX, appleY);
-        }
-        if (state == STATE.GAME_OVER) {
-            layout.setText(bitmapFont, GAME_OVER_TEXT);
-            bitmapFont.draw(batch, GAME_OVER_TEXT, viewport.getWorldWidth() / 2 - layout.width / 2,
-                viewport.getWorldHeight() / 2 - layout.height / 2);
-        }
-        batch.end();
-    }
-
-    private class BodyPart {
-        private float x, y;
-        private Texture texture;
-
-        public BodyPart(Texture texture) {
-            this.texture = texture;
-        }
-
-        public void updateBodyPosition(float x, float y) {
-            this.x = x;
-            this.y = y;
-        }
-
-        public float getX() {
-            return x;
-        }
-
-        public float getY() {
-            return y;
-        }
-
-        public void draw(Batch batch) {
-            if (!(x == snakeX && y == snakeY)) {
-                batch.draw(texture, x, y);
+    private void updateDirection(int newSnakeDirection) {
+        if (!directionSet && snakeDirection != newSnakeDirection) {
+            directionSet = true;
+            switch (newSnakeDirection) {
+                case LEFT:
+                    updateIfNotOppositeDirection(newSnakeDirection, RIGHT);
+                    break;
+                case RIGHT:
+                    updateIfNotOppositeDirection(newSnakeDirection, LEFT);
+                    break;
+                case UP:
+                    updateIfNotOppositeDirection(newSnakeDirection, DOWN);
+                    break;
+                case DOWN:
+                    updateIfNotOppositeDirection(newSnakeDirection, UP);
+                    break;
             }
         }
+    }
+
+    private void updateIfNotOppositeDirection(int newSnakeDirection, int oppositeDirection) {
+        if ((snakeDirection != oppositeDirection) || bodyParts.size == 0)
+            snakeDirection = newSnakeDirection;
     }
 
     private void updateSnake(float delta) {
@@ -193,46 +199,41 @@ public class GameScreen extends ScreenAdapter {
         switch (snakeDirection) {
             case RIGHT:
                 snakeX += SNAKE_MOVEMENT;
-                break;
+                return;
             case LEFT:
                 snakeX -= SNAKE_MOVEMENT;
-                break;
+                return;
             case UP:
                 snakeY += SNAKE_MOVEMENT;
-                break;
+                return;
             case DOWN:
                 snakeY -= SNAKE_MOVEMENT;
-                break;
+                return;
         }
     }
 
     private void checkForOutOfBounds() {
-        if (snakeX < 0 || snakeX >= viewport.getWorldWidth() || snakeY < 0 || snakeY >= viewport.getWorldHeight()) {
-            state = STATE.GAME_OVER;
-        }
+        if (snakeX >= viewport.getWorldWidth()) snakeX = 0;
+        if (snakeX < 0) snakeX = MathUtils.round(viewport.getWorldWidth()) - SNAKE_MOVEMENT;
+        if (snakeY >= viewport.getWorldHeight()) snakeY = 0;
+        if (snakeY < 0) snakeY = MathUtils.round(viewport.getWorldHeight()) - SNAKE_MOVEMENT;
     }
 
     private void updateBodyPartsPosition() {
         if (bodyParts.size > 0) {
-            float prevX = snakeXBeforeUpdate;
-            float prevY = snakeYBeforeUpdate;
-            for (int i = 0; i < bodyParts.size; i++) {
-                BodyPart part = bodyParts.get(i);
-                float tempX = part.getX();
-                float tempY = part.getY();
-                part.updateBodyPosition(prevX, prevY);
-                prevX = tempX;
-                prevY = tempY;
-            }
+            BodyPart bodyPart = bodyParts.removeIndex(0);
+            bodyPart.updateBodyPosition(snakeXBeforeUpdate, snakeYBeforeUpdate);
+            bodyParts.add(bodyPart);
         }
     }
 
-    private void checkSnakeBodyCollision() {
-        for (BodyPart part : bodyParts) {
-            if (snakeX == part.getX() && snakeY == part.getY()) {
-                state = STATE.GAME_OVER;
-                break;
-            }
+    private void checkAndPlaceApple() {
+        if (!appleAvailable) {
+            do {
+                appleX = MathUtils.random((int) (viewport.getWorldWidth() / SNAKE_MOVEMENT) - 1) * SNAKE_MOVEMENT;
+                appleY = MathUtils.random((int) (viewport.getWorldHeight() / SNAKE_MOVEMENT) - 1) * SNAKE_MOVEMENT;
+                appleAvailable = true;
+            } while (appleX == snakeX && appleY == snakeY);
         }
     }
 
@@ -246,17 +247,80 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
+    private void checkSnakeBodyCollision() {
+        for (BodyPart bodyPart : bodyParts) {
+            if (bodyPart.x == snakeX && bodyPart.y == snakeY)
+                state = STATE.GAME_OVER;
+        }
+    }
+
     private void addToScore() {
         score += POINTS_PER_APPLE;
     }
 
-    private void checkAndPlaceApple() {
-        if (!appleAvailable) {
-            do {
-                appleX = MathUtils.random((int) (viewport.getWorldWidth() / SNAKE_MOVEMENT) - 1) * SNAKE_MOVEMENT;
-                appleY = MathUtils.random((int) (viewport.getWorldHeight() / SNAKE_MOVEMENT) - 1) * SNAKE_MOVEMENT;
-                appleAvailable = true;
-            } while (appleX == snakeX && appleY == snakeY);
+    private void clearScreen() {
+        Gdx.gl.glClearColor(Color.BLACK.r, Color.BLACK.g, Color.BLACK.b, Color.BLACK.a);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+    }
+
+    private void drawGrid() {
+        shapeRenderer.setProjectionMatrix(camera.projection);
+        shapeRenderer.setTransformMatrix(camera.view);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        for (int x = 0; x < viewport.getWorldWidth(); x += GRID_CELL) {
+            for (int y = 0; y < viewport.getWorldHeight(); y += GRID_CELL) {
+                shapeRenderer.rect(x, y, GRID_CELL, GRID_CELL);
+            }
+        }
+        shapeRenderer.end();
+    }
+
+    private void draw() {
+        batch.setProjectionMatrix(camera.projection);
+        batch.setTransformMatrix(camera.view);
+        batch.begin();
+        batch.draw(snakeHead, snakeX, snakeY);
+        for (BodyPart bodyPart : bodyParts) {
+            bodyPart.draw(batch);
+        }
+        if (appleAvailable)
+            batch.draw(apple, appleX, appleY);
+        if (state == STATE.GAME_OVER) {
+            layout.setText(bitmapFont, GAME_OVER_TEXT);
+            bitmapFont.draw(batch, GAME_OVER_TEXT,
+                viewport.getWorldWidth() / 2 - layout.width / 2,
+                viewport.getWorldHeight() / 2 - layout.height / 2);
+        }
+        drawScore();
+        batch.end();
+    }
+
+    private void drawScore() {
+        if (state == STATE.PLAYING) {
+            String scoreAsString = Integer.toString(score);
+            layout.setText(bitmapFont, scoreAsString);
+            bitmapFont.draw(batch, scoreAsString,
+                viewport.getWorldWidth() / 2 - layout.width / 2,
+                (4 * viewport.getWorldHeight() / 5) - layout.height / 2);
+        }
+    }
+
+    private void drawDebugArrow() {
+        if ("gyroscope".equalsIgnoreCase(controlMode)) {
+            // Position de base pour la flèche
+            float debugX = viewport.getWorldWidth() - 100;
+            float debugY = viewport.getWorldHeight() - 100;
+            float arrowLength = 50;
+            float rad = debugAngle * MathUtils.degreesToRadians;
+            float tipX = debugX + arrowLength * MathUtils.cos(rad);
+            float tipY = debugY + arrowLength * MathUtils.sin(rad);
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            shapeRenderer.setColor(Color.RED);
+            shapeRenderer.rectLine(debugX, debugY, tipX, tipY, 5);
+            shapeRenderer.end();
+            batch.begin();
+            bitmapFont.draw(batch, "Angle: " + (int) debugAngle, debugX - 40, debugY - 20);
+            batch.end();
         }
     }
 
@@ -268,5 +332,24 @@ public class GameScreen extends ScreenAdapter {
         apple.dispose();
         bitmapFont.dispose();
         shapeRenderer.dispose();
+    }
+
+    private class BodyPart {
+        private float x, y;
+        private Texture texture;
+
+        public BodyPart(Texture texture) {
+            this.texture = texture;
+        }
+
+        public void updateBodyPosition(float x, float y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        public void draw(Batch batch) {
+            if (!(x == snakeX && y == snakeY))
+                batch.draw(texture, x, y);
+        }
     }
 }
