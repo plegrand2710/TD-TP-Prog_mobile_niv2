@@ -1,3 +1,160 @@
+===== BodyPart.java =====
+package com.TD1.Pauline;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Batch;
+
+public class BodyPart {
+    private float x, y;
+    private Texture texture;
+
+    public BodyPart(Texture texture) {
+        this.texture = texture;
+    }
+
+    public void updateBodyPosition(float x, float y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
+
+    public void draw(Batch batch) {
+        batch.draw(texture, x, y);
+    }
+}
+
+---------------------------
+
+===== DBAdapter.java =====
+package com.TD1.Pauline;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.utils.Array;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+
+public class DBAdapter {
+    private static final String DATABASE_NAME = "GameScoresDB.db";
+    private static final String TABLE_SCORES = "scores";
+    private static final String KEY_ID = "id";
+    private static final String KEY_PSEUDO = "pseudo";
+    private static final String KEY_SCORE = "score";
+    private Connection connection;
+
+    public DBAdapter() {
+        try {
+            FileHandle dbFile = Gdx.files.local(DATABASE_NAME);
+            String url = "jdbc:sqlite:" + dbFile.file().getAbsolutePath();
+            connection = DriverManager.getConnection(url);
+            createTable();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void createTable() {
+        String sql = "CREATE TABLE IF NOT EXISTS " + TABLE_SCORES + " (" +
+            KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            KEY_PSEUDO + " TEXT NOT NULL, " +
+            KEY_SCORE + " INTEGER NOT NULL)";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void insertScore(String pseudo, int score) {
+        String sql = "INSERT INTO " + TABLE_SCORES + " (" + KEY_PSEUDO + ", " + KEY_SCORE + ") VALUES (?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, pseudo);
+            pstmt.setInt(2, score);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Array<String> getAllScores() {
+        Array<String> scoresList = new Array<>();
+        String sql = "SELECT " + KEY_PSEUDO + ", " + KEY_SCORE + " FROM " + TABLE_SCORES + " ORDER BY " + KEY_SCORE + " DESC";
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                String pseudo = rs.getString(KEY_PSEUDO);
+                int score = rs.getInt(KEY_SCORE);
+                scoresList.add(pseudo + " - " + score);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return scoresList;
+    }
+
+    public ArrayList<String> getTop3Scores() {
+        ArrayList<String> topScores = new ArrayList<>();
+        String sql = "SELECT " + KEY_PSEUDO + ", " + KEY_SCORE + " FROM " + TABLE_SCORES + " ORDER BY " + KEY_SCORE + " DESC LIMIT 3";
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                String pseudo = rs.getString(KEY_PSEUDO);
+                int score = rs.getInt(KEY_SCORE);
+                topScores.add(pseudo + " - " + score);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return topScores;
+    }
+
+    public void updateScore(int id, String pseudo, int score) {
+        String sql = "UPDATE " + TABLE_SCORES + " SET " + KEY_PSEUDO + " = ?, " + KEY_SCORE + " = ? WHERE " + KEY_ID + " = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, pseudo);
+            pstmt.setInt(2, score);
+            pstmt.setInt(3, id);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteScore(int id) {
+        String sql = "DELETE FROM " + TABLE_SCORES + " WHERE " + KEY_ID + " = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteAllScores() {
+        String sql = "DELETE FROM " + TABLE_SCORES;
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+---------------------------
+
+===== GameScreen.java =====
 package com.TD1.Pauline;
 
 import com.badlogic.gdx.Game;
@@ -54,7 +211,6 @@ public class GameScreen extends ScreenAdapter {
     private int score = 0;
     private Array<BodyPart> bodyParts = new Array<BodyPart>();
     private GlyphLayout layout = new GlyphLayout();
-    private Game game;
 
     private enum STATE { PLAYING, GAME_OVER }
     private STATE state = STATE.PLAYING;
@@ -65,12 +221,11 @@ public class GameScreen extends ScreenAdapter {
     private Touchpad touchpad;
 
     private float debugAngle = 0;
-    private ScoresFileAdapter scoreAdapter;
+    private DBAdapter dbAdapter;
 
     public GameScreen(Game game, String controlMode) {
         this.controlMode = controlMode;
-        this.game = game;
-        this.scoreAdapter = new ScoresFileAdapter();
+        this.dbAdapter = new DBAdapter(); // Initialisation de la base de données
     }
 
     @Override
@@ -206,15 +361,11 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void checkForRestart() {
-        if (Gdx.input.justTouched()) {
-            scoreAdapter.insertScore("Joueur", score);
-            game.setScreen(new SplashScreen(game));
-            dispose();
-        }
+        if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) doRestart();
     }
 
     private void doRestart() {
-        scoreAdapter.insertScore("Joueur", score);
+        dbAdapter.insertScore("Joueur", score); // Enregistrer le score avant de redémarrer
         state = STATE.PLAYING;
         bodyParts.clear();
         snakeDirection = RIGHT;
@@ -427,3 +578,149 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 }
+
+---------------------------
+
+===== Main.java =====
+package com.TD1.Pauline;
+
+import com.badlogic.gdx.Game;
+
+public class Main extends Game {
+    @Override
+    public void create() {
+        setScreen(new SplashScreen(this));
+    }
+}
+
+---------------------------
+
+===== SplashScreen.java =====
+package com.TD1.Pauline;
+
+import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
+
+import java.util.ArrayList;
+
+public class SplashScreen implements Screen {
+    private Game game;
+    private Stage stage;
+    private Skin skin;
+    private Preferences prefs;
+    private DBAdapter dbAdapter;
+
+    public SplashScreen(final Game game) {
+        this.game = game;
+        this.dbAdapter = new DBAdapter(); // Initialisation de la base de données
+    }
+
+    @Override
+    public void show() {
+        stage = new Stage(new ScreenViewport());
+        Gdx.input.setInputProcessor(stage);
+
+        try {
+            skin = new Skin(Gdx.files.internal("uiskin.json"));
+        } catch (Exception e) {
+        }
+
+        prefs = Gdx.app.getPreferences("GameScores");
+
+
+        if (!Gdx.files.internal("background.png").exists()) {
+            System.out.println("background.png introuvable !");
+        } else {
+            System.out.println("background.png trouvé !");
+        }
+        Texture bgTexture = new Texture(Gdx.files.internal("background.png"));
+        Image background = new Image(bgTexture);
+        background.setFillParent(true);
+        stage.addActor(background);
+
+        Table table = new Table();
+        table.setFillParent(true);
+        table.setBackground(skin.newDrawable("white", new Color(0, 0, 0, 0.5f)));
+        stage.addActor(table);
+
+        Label titleLabel = new Label("Choose Control Mode", skin);
+        titleLabel.setFontScale(2f);
+        TextButton touchpadButton = new TextButton("Touchpad", skin);
+        TextButton gyroscopeButton = new TextButton("Gyroscope", skin);
+        ArrayList<String> topScores = dbAdapter.getTop3Scores();
+        StringBuilder scoreText = new StringBuilder("Top Scores:\n");
+        for (String scoreEntry : topScores) {
+            scoreText.append(scoreEntry).append("\n");
+        }
+        Label scoreLabel = new Label(scoreText.toString(), skin);
+        scoreLabel.setFontScale(1.5f);
+
+        touchpadButton.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                game.setScreen(new GameScreen(game, "touchpad"));
+                return true;
+            }
+        });
+
+        gyroscopeButton.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                game.setScreen(new GameScreen(game, "gyroscope"));
+                return true;
+            }
+        });
+
+        table.add(titleLabel).padBottom(40).expandX().row();
+        table.add(touchpadButton).padBottom(20).width(300).height(60).row();
+        table.add(gyroscopeButton).padBottom(40).width(300).height(60).row();
+        table.add(scoreLabel).expandX();
+    }
+
+    @Override
+    public void render(float delta) {
+        ScreenUtils.clear(0, 0, 0, 1);
+        stage.act(delta);
+        stage.draw();
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        stage.getViewport().update(width, height, true);
+    }
+
+    @Override
+    public void pause() { }
+
+    @Override
+    public void resume() { }
+
+    @Override
+    public void hide() {
+        dispose();
+    }
+
+    @Override
+    public void dispose() {
+        stage.dispose();
+        skin.dispose();
+    }
+}
+
+---------------------------
+
