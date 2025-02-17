@@ -29,13 +29,11 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 public class GameScreen extends ScreenAdapter {
 
     private static final float MOVE_TIME = 0.5f;
-    private static final int GRID_CELL = 32;
+    private static final int GRID_CELL = 62;
     private static final int SNAKE_MOVEMENT = GRID_CELL;
-    private static final float WORLD_WIDTH = 640;
-    private static final float WORLD_HEIGHT = 480;
     private static final int RIGHT = 0, LEFT = 1, UP = 2, DOWN = 3;
     private static final int POINTS_PER_APPLE = 20;
-    private static final String GAME_OVER_TEXT = "Game Over... Tap space to restart!";
+    private static final String GAME_OVER_TEXT = "Game Over... Cliquer pour rejouer!";
     private boolean DEBUG = true;
     private ShapeRenderer shapeRenderer;
     private BitmapFont bitmapFont;
@@ -67,6 +65,11 @@ public class GameScreen extends ScreenAdapter {
     private float debugAngle = 0;
     private ScoresFileAdapter scoreAdapter;
 
+    private int gridCellSize = GRID_CELL;
+    private int reservedTouchpadWidth = 200;
+    private int gridWidth;
+    private int gridHeight;
+
     public GameScreen(Game game, String controlMode) {
         this.controlMode = controlMode;
         this.game = game;
@@ -75,18 +78,44 @@ public class GameScreen extends ScreenAdapter {
 
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height);
+        if ("touchpad".equalsIgnoreCase(controlMode)) {
+            gridWidth = ((width - reservedTouchpadWidth) / gridCellSize) * gridCellSize;
+        } else {
+            gridWidth = (width / gridCellSize) * gridCellSize;
+        }
+        gridHeight = (height / gridCellSize) * gridCellSize;
+        camera.viewportWidth = gridWidth;
+        camera.viewportHeight = gridHeight;
+        camera.position.set(gridWidth / 2, gridHeight / 2, 0);
+        camera.update();
+
+        viewport.update(width, height, true);
         if (uiStage != null) {
-            uiStage.getViewport().update(width, height, true);
+            //uiStage.getViewport().update(width, height, true);
+            uiStage.getViewport().update(gridWidth, gridHeight, true);
+            touchpad.setBounds(gridWidth - 115, 15, 200, 200);
+
+
         }
     }
 
+
+
     @Override
     public void show() {
-        camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        camera.position.set(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 0);
+        int screenWidth = Gdx.graphics.getWidth();
+        int screenHeight = Gdx.graphics.getHeight();
+        if ("touchpad".equalsIgnoreCase(controlMode)) {
+            gridWidth = ((screenWidth - reservedTouchpadWidth) / gridCellSize) * gridCellSize;
+        } else {
+            gridWidth = (screenWidth / gridCellSize) * gridCellSize;
+        }
+        gridHeight = (screenHeight / gridCellSize) * gridCellSize;
+
+        camera = new OrthographicCamera(gridWidth, gridHeight);
+        camera.position.set(gridWidth / 2, gridHeight / 2, 0);
         camera.update();
-        viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
+        viewport = new FitViewport(gridWidth, gridHeight, camera);
 
         bitmapFont = new BitmapFont();
         shapeRenderer = new ShapeRenderer();
@@ -97,35 +126,11 @@ public class GameScreen extends ScreenAdapter {
         apple = new Texture(Gdx.files.internal("apple.png"));
 
         if ("touchpad".equalsIgnoreCase(controlMode)) {
-            uiStage = new Stage(new ScreenViewport());
-            Touchpad.TouchpadStyle touchpadStyle = new Touchpad.TouchpadStyle();
-
-            Pixmap bgPixmap = new Pixmap(100, 100, Pixmap.Format.RGBA8888);
-            bgPixmap.setColor(Color.GRAY);
-            bgPixmap.fillCircle(50, 50, 50);
-            Texture bgTexture = new Texture(bgPixmap);
-            bgPixmap.dispose();
-
-            Pixmap knobPixmap = new Pixmap(50, 50, Pixmap.Format.RGBA8888);
-            knobPixmap.setColor(Color.DARK_GRAY);
-            knobPixmap.fillCircle(25, 25, 25);
-            Texture knobTexture = new Texture(knobPixmap);
-            knobPixmap.dispose();
-
-            touchpadStyle.background = new TextureRegionDrawable(bgTexture);
-            touchpadStyle.knob = new TextureRegionDrawable(knobTexture);
-
-            touchpad = new Touchpad(10, touchpadStyle);
-            touchpad.setBounds(15, 15, 200, 200);
-            uiStage.addActor(touchpad);
-
-            InputMultiplexer multiplexer = new InputMultiplexer();
-            multiplexer.addProcessor(uiStage);
-            Gdx.input.setInputProcessor(multiplexer);
-        } else {
-            Gdx.input.setInputProcessor(null);
+            setupTouchpad();
         }
     }
+
+
 
     @Override
     public void render(float delta) {
@@ -213,21 +218,6 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
-    private void doRestart() {
-        scoreAdapter.insertScore("Joueur", score);
-        state = STATE.PLAYING;
-        bodyParts.clear();
-        snakeDirection = RIGHT;
-        directionSet = false;
-        timer = MOVE_TIME;
-        snakeX = 0;
-        snakeY = 0;
-        snakeXBeforeUpdate = 0;
-        snakeYBeforeUpdate = 0;
-        appleAvailable = false;
-        score = 0;
-    }
-
     private void updateDirection(int newSnakeDirection) {
         if (!directionSet && snakeDirection != newSnakeDirection) {
             directionSet = true;
@@ -285,11 +275,12 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void checkForOutOfBounds() {
-        if (snakeX >= viewport.getWorldWidth()) snakeX = 0;
-        if (snakeX < 0) snakeX = MathUtils.round(viewport.getWorldWidth()) - SNAKE_MOVEMENT;
-        if (snakeY >= viewport.getWorldHeight()) snakeY = 0;
-        if (snakeY < 0) snakeY = MathUtils.round(viewport.getWorldHeight()) - SNAKE_MOVEMENT;
+        if (snakeX >= gridWidth) snakeX = 0;
+        if (snakeX < 0) snakeX = gridWidth - SNAKE_MOVEMENT;
+        if (snakeY >= gridHeight) snakeY = 0;
+        if (snakeY < 0) snakeY = gridHeight - SNAKE_MOVEMENT;
     }
+
 
     private void updateBodyPartsPosition() {
         if (bodyParts.size > 0) {
@@ -302,12 +293,13 @@ public class GameScreen extends ScreenAdapter {
     private void checkAndPlaceApple() {
         if (!appleAvailable) {
             do {
-                appleX = MathUtils.random((int) (viewport.getWorldWidth() / SNAKE_MOVEMENT) - 1) * SNAKE_MOVEMENT;
-                appleY = MathUtils.random((int) (viewport.getWorldHeight() / SNAKE_MOVEMENT) - 1) * SNAKE_MOVEMENT;
+                appleX = MathUtils.random((gridWidth / gridCellSize) - 1) * gridCellSize;
+                appleY = MathUtils.random((gridHeight / gridCellSize) - 1) * gridCellSize;
                 appleAvailable = true;
             } while (appleX == snakeX && appleY == snakeY);
         }
     }
+
 
     private void checkAppleCollision() {
         if (appleAvailable && appleX == snakeX && appleY == snakeY) {
@@ -339,13 +331,15 @@ public class GameScreen extends ScreenAdapter {
         shapeRenderer.setProjectionMatrix(camera.projection);
         shapeRenderer.setTransformMatrix(camera.view);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        for (int x = 0; x < viewport.getWorldWidth(); x += GRID_CELL) {
-            for (int y = 0; y < viewport.getWorldHeight(); y += GRID_CELL) {
-                shapeRenderer.rect(x, y, GRID_CELL, GRID_CELL);
+        for (int x = 0; x < gridWidth; x += gridCellSize) {
+            for (int y = 0; y < gridHeight; y += gridCellSize) {
+                shapeRenderer.rect(x, y, gridCellSize, gridCellSize);
             }
         }
         shapeRenderer.end();
     }
+
+
 
     private void draw() {
         batch.setProjectionMatrix(camera.projection);
@@ -360,8 +354,8 @@ public class GameScreen extends ScreenAdapter {
         if (state == STATE.GAME_OVER) {
             layout.setText(bitmapFont, GAME_OVER_TEXT);
             bitmapFont.draw(batch, GAME_OVER_TEXT,
-                viewport.getWorldWidth() / 2 - layout.width / 2,
-                viewport.getWorldHeight() / 2 - layout.height / 2);
+                gridWidth / 2 - layout.width / 2,
+                gridHeight / 2 - layout.height / 2);
         }
         drawScore();
         batch.end();
@@ -372,16 +366,17 @@ public class GameScreen extends ScreenAdapter {
             String scoreAsString = Integer.toString(score);
             layout.setText(bitmapFont, scoreAsString);
             bitmapFont.draw(batch, scoreAsString,
-                viewport.getWorldWidth() / 2 - layout.width / 2,
-                (4 * viewport.getWorldHeight() / 5) - layout.height / 2);
+                gridWidth / 2 - layout.width / 2,
+                (4 * gridHeight / 5) - layout.height / 2);
         }
     }
 
-    private void drawDebugArrow() {
 
+
+    private void drawDebugArrow() {
         if ("gyroscope".equalsIgnoreCase(controlMode) && DEBUG) {
-            float debugX = viewport.getWorldWidth() - 100;
-            float debugY = viewport.getWorldHeight() - 100;
+            float debugX = gridWidth - 100;
+            float debugY = gridHeight - 100;
             float arrowLength = 50;
             float rad = debugAngle * MathUtils.degreesToRadians;
             float tipX = debugX + arrowLength * MathUtils.cos(rad);
@@ -394,6 +389,37 @@ public class GameScreen extends ScreenAdapter {
             bitmapFont.draw(batch, "Angle: " + (int) debugAngle, debugX - 40, debugY - 20);
             batch.end();
         }
+    }
+
+
+    private void setupTouchpad() {
+        uiStage = new Stage(new ScreenViewport());
+
+        Touchpad.TouchpadStyle touchpadStyle = new Touchpad.TouchpadStyle();
+
+        Pixmap bgPixmap = new Pixmap(100, 100, Pixmap.Format.RGBA8888);
+        bgPixmap.setColor(Color.GRAY);
+        bgPixmap.fillCircle(50, 50, 50);
+        Texture bgTexture = new Texture(bgPixmap);
+        bgPixmap.dispose();
+
+        Pixmap knobPixmap = new Pixmap(50, 50, Pixmap.Format.RGBA8888);
+        knobPixmap.setColor(Color.DARK_GRAY);
+        knobPixmap.fillCircle(25, 25, 25);
+        Texture knobTexture = new Texture(knobPixmap);
+        knobPixmap.dispose();
+
+        touchpadStyle.background = new TextureRegionDrawable(bgTexture);
+        touchpadStyle.knob = new TextureRegionDrawable(knobTexture);
+
+        touchpad = new Touchpad(10, touchpadStyle);
+        //touchpad.setBounds(15, 15, 200, 200);
+        touchpad.setBounds(Gdx.graphics.getWidth() - 215, 15, 200, 200);
+        uiStage.addActor(touchpad);
+
+        InputMultiplexer multiplexer = new InputMultiplexer();
+        multiplexer.addProcessor(uiStage);
+        Gdx.input.setInputProcessor(multiplexer);
     }
 
     @Override
