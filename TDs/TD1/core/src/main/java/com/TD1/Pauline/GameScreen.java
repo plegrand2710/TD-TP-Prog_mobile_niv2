@@ -29,7 +29,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 public class GameScreen extends ScreenAdapter {
 
     private static final float MOVE_TIME = 0.5f;
-    private static final int GRID_CELL = 62;
+    private static final int GRID_CELL = 32;
     private static final int SNAKE_MOVEMENT = GRID_CELL;
     private static final int RIGHT = 0, LEFT = 1, UP = 2, DOWN = 3;
     private static final int POINTS_PER_APPLE = 20;
@@ -91,10 +91,8 @@ public class GameScreen extends ScreenAdapter {
 
         viewport.update(width, height, true);
         if (uiStage != null) {
-            //uiStage.getViewport().update(width, height, true);
-            uiStage.getViewport().update(gridWidth, gridHeight, true);
-            touchpad.setBounds(gridWidth - 115, 15, 200, 200);
-
+            uiStage.getViewport().update(width, height, true);
+            touchpad.setBounds(width - 215, 15, 200, 200);
 
         }
     }
@@ -275,8 +273,8 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void checkForOutOfBounds() {
-        if (snakeX >= gridWidth) snakeX = 0;
-        if (snakeX < 0) snakeX = gridWidth - SNAKE_MOVEMENT;
+        if (snakeX >= gridWidth - 200) snakeX = 0;
+        if (snakeX < 0) snakeX = (gridWidth -200) - SNAKE_MOVEMENT;
         if (snakeY >= gridHeight) snakeY = 0;
         if (snakeY < 0) snakeY = gridHeight - SNAKE_MOVEMENT;
     }
@@ -293,7 +291,7 @@ public class GameScreen extends ScreenAdapter {
     private void checkAndPlaceApple() {
         if (!appleAvailable) {
             do {
-                appleX = MathUtils.random((gridWidth / gridCellSize) - 1) * gridCellSize;
+                appleX = MathUtils.random(((gridWidth - 200) / gridCellSize) - 1) * gridCellSize;
                 appleY = MathUtils.random((gridHeight / gridCellSize) - 1) * gridCellSize;
                 appleAvailable = true;
             } while (appleX == snakeX && appleY == snakeY);
@@ -331,7 +329,7 @@ public class GameScreen extends ScreenAdapter {
         shapeRenderer.setProjectionMatrix(camera.projection);
         shapeRenderer.setTransformMatrix(camera.view);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        for (int x = 0; x < gridWidth; x += gridCellSize) {
+        for (int x = 0; x < gridWidth - 200; x += gridCellSize) {
             for (int y = 0; y < gridHeight; y += gridCellSize) {
                 shapeRenderer.rect(x, y, gridCellSize, gridCellSize);
             }
