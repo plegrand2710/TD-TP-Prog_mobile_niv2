@@ -70,6 +70,9 @@ public class GameScreen extends ScreenAdapter {
     private int gridWidth;
     private int gridHeight;
 
+    private boolean nameRequested = false;
+
+
     public GameScreen(Game game, String controlMode) {
         this.controlMode = controlMode;
         this.game = game;
@@ -209,10 +212,23 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void checkForRestart() {
-        if (Gdx.input.justTouched()) {
-            scoreAdapter.insertScore("Joueur", score);
-            game.setScreen(new SplashScreen(game));
-            dispose();
+        if (state == STATE.GAME_OVER && Gdx.input.justTouched() && !nameRequested) {
+            nameRequested = true;
+            Gdx.input.getTextInput(new Input.TextInputListener() {
+                @Override
+                public void input(String text) {
+                    scoreAdapter.insertScore(text, score);
+                    game.setScreen(new SplashScreen(game));
+                    dispose();
+                }
+
+                @Override
+                public void canceled() {
+                    scoreAdapter.insertScore("Joueur", score);
+                    game.setScreen(new SplashScreen(game));
+                    dispose();
+                }
+            }, "Entrez votre nom", "", "Nom");
         }
     }
 
@@ -273,10 +289,16 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void checkForOutOfBounds() {
-        if (snakeX >= gridWidth - 200) snakeX = 0;
-        if (snakeX < 0) snakeX = (gridWidth -200) - SNAKE_MOVEMENT;
-        if (snakeY >= gridHeight) snakeY = 0;
-        if (snakeY < 0) snakeY = gridHeight - SNAKE_MOVEMENT;
+        if (snakeX >= gridWidth - reservedTouchpadWidth)
+            snakeX = 0;
+        if (snakeX < 0) {
+            int columns = (gridWidth - reservedTouchpadWidth) / gridCellSize;
+            snakeX = (columns - 0) * gridCellSize;
+        }
+        if (snakeY >= gridHeight)
+            snakeY = 0;
+        if (snakeY < 0)
+            snakeY = gridHeight - gridCellSize;
     }
 
 
@@ -291,7 +313,7 @@ public class GameScreen extends ScreenAdapter {
     private void checkAndPlaceApple() {
         if (!appleAvailable) {
             do {
-                appleX = MathUtils.random(((gridWidth - 200) / gridCellSize) - 1) * gridCellSize;
+                appleX = MathUtils.random(((gridWidth - reservedTouchpadWidth) / gridCellSize) - 1) * gridCellSize;
                 appleY = MathUtils.random((gridHeight / gridCellSize) - 1) * gridCellSize;
                 appleAvailable = true;
             } while (appleX == snakeX && appleY == snakeY);
@@ -329,7 +351,7 @@ public class GameScreen extends ScreenAdapter {
         shapeRenderer.setProjectionMatrix(camera.projection);
         shapeRenderer.setTransformMatrix(camera.view);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        for (int x = 0; x < gridWidth - 200; x += gridCellSize) {
+        for (int x = 0; x < gridWidth - reservedTouchpadWidth; x += gridCellSize) {
             for (int y = 0; y < gridHeight; y += gridCellSize) {
                 shapeRenderer.rect(x, y, gridCellSize, gridCellSize);
             }
@@ -411,7 +433,6 @@ public class GameScreen extends ScreenAdapter {
         touchpadStyle.knob = new TextureRegionDrawable(knobTexture);
 
         touchpad = new Touchpad(10, touchpadStyle);
-        //touchpad.setBounds(15, 15, 200, 200);
         touchpad.setBounds(Gdx.graphics.getWidth() - 215, 15, 200, 200);
         uiStage.addActor(touchpad);
 
