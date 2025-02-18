@@ -10,83 +10,97 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
-
 public class StartScreen extends ScreenAdapter {
 
+    private static final boolean DEBUG = true;
+    private static final String TAG = "MYAPP";
     private static final float WORLD_WIDTH = 480;
     private static final float WORLD_HEIGHT = 640;
 
     private Stage stage;
-
     private Texture backgroundTexture;
-    private Texture playTexture;
-    private Texture playPressTexture;
     private Texture titleTexture;
-
+    private Skin skin;
     private final Game game;
 
     public StartScreen(Game game) {
         this.game = game;
+        if (DEBUG) Gdx.app.log(TAG, "StartScreen constructor called.");
     }
 
     @Override
     public void show() {
-        super.show();
+        if (DEBUG) Gdx.app.log(TAG, "StartScreen show() called.");
         stage = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
         Gdx.input.setInputProcessor(stage);
 
         backgroundTexture = new Texture(Gdx.files.internal("bg.png"));
-        Image background = new Image(backgroundTexture);
+        if (DEBUG) Gdx.app.log(TAG, "Loaded bg.png");
+        Image background = new Image(new TextureRegion(backgroundTexture));
         stage.addActor(background);
 
-        playTexture = new Texture(Gdx.files.internal("play.png"));
-        playPressTexture = new Texture(Gdx.files.internal("playPress.png"));
-        ImageButton play = new ImageButton(new TextureRegionDrawable(new TextureRegion(playTexture)), new TextureRegionDrawable(new TextureRegion(playPressTexture)));
-        play.addListener(new ActorGestureListener() {
+        titleTexture = new Texture(Gdx.files.internal("title.png"));
+        if (DEBUG) Gdx.app.log(TAG, "Loaded title.png");
+        Image title = new Image(new TextureRegion(titleTexture));
+        title.setPosition(WORLD_WIDTH / 2, 3 * WORLD_HEIGHT / 4, Align.center);
+        stage.addActor(title);
+
+        skin = new Skin(Gdx.files.internal("uiskin.json"));
+        if (DEBUG) Gdx.app.log(TAG, "Loaded skin");
+
+        TextButton gyroButton = new TextButton("Gyroscope", skin);
+        gyroButton.setSize(150, 50);
+        gyroButton.setPosition(WORLD_WIDTH / 4 - gyroButton.getWidth() / 2, WORLD_HEIGHT / 4 - gyroButton.getHeight() / 2);
+        gyroButton.addListener(new ActorGestureListener() {
             @Override
             public void tap(InputEvent event, float x, float y, int count, int button) {
-                super.tap(event, x, y, count, button);
-                game.setScreen(new GameScreen());
+                if (DEBUG) Gdx.app.log(TAG, "Gyroscope button tapped.");
+                game.setScreen(new GameScreen(true));
                 dispose();
             }
         });
-        play.setPosition(WORLD_WIDTH / 2, WORLD_HEIGHT / 4, Align.center);
-        stage.addActor(play);
+        stage.addActor(gyroButton);
 
-        titleTexture = new Texture(Gdx.files.internal("title.png"));
-        Image title = new Image(titleTexture);
-        title.setPosition(WORLD_WIDTH / 2, 3 * WORLD_HEIGHT / 4, Align.center);
-        stage.addActor(title);
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        super.resize(width, height);
-        stage.getViewport().update(width, height, true);
+        TextButton touchButton = new TextButton("TouchPad", skin);
+        touchButton.setSize(150, 50);
+        touchButton.setPosition(3 * WORLD_WIDTH / 4 - touchButton.getWidth() / 2, WORLD_HEIGHT / 4 - touchButton.getHeight() / 2);
+        touchButton.addListener(new ActorGestureListener() {
+            @Override
+            public void tap(InputEvent event, float x, float y, int count, int button) {
+                if (DEBUG) Gdx.app.log(TAG, "TouchPad button tapped.");
+                game.setScreen(new GameScreen(false));
+                dispose();
+            }
+        });
+        stage.addActor(touchButton);
     }
 
     @Override
     public void render(float delta) {
-        super.render(delta);
         clearScreen();
         stage.act(delta);
         stage.draw();
     }
 
     @Override
+    public void resize(int width, int height) {
+        if (DEBUG) Gdx.app.log(TAG, "StartScreen resize() called: width=" + width + ", height=" + height);
+        stage.getViewport().update(width, height, true);
+    }
+
+    @Override
     public void dispose() {
-        super.dispose();
+        if (DEBUG) Gdx.app.log(TAG, "StartScreen dispose() called.");
         stage.dispose();
         backgroundTexture.dispose();
-        playTexture.dispose();
-        playPressTexture.dispose();
         titleTexture.dispose();
+        skin.dispose();
     }
 
     private void clearScreen() {

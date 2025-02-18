@@ -1,7 +1,6 @@
 package com.TD1.Pauline;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
@@ -13,16 +12,16 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
-
 public class GameScreen extends ScreenAdapter {
-
+    private static final boolean DEBUG = true;
+    private static final String TAG = "MYAPP";
     private static final float WORLD_WIDTH = 480;
     private static final float WORLD_HEIGHT = 640;
-
     private static final float GAP_BETWEEN_FLOWERS = 200F;
 
     private ShapeRenderer shapeRenderer;
@@ -30,13 +29,10 @@ public class GameScreen extends ScreenAdapter {
     private Camera camera;
     private BitmapFont bitmapFont;
     private GlyphLayout glyphLayout;
-
     private SpriteBatch batch;
 
     private Flappee flappee;
-
     private Array<Flower> flowers = new Array<Flower>();
-
     private int score = 0;
 
     private Texture background;
@@ -44,15 +40,30 @@ public class GameScreen extends ScreenAdapter {
     private Texture flowerTop;
     private Texture flappeeTexture;
 
+    private boolean useGyroscope;
+    private float gyroscopeSensitivity = 5.0f;
+
+    private boolean joystickActive = false;
+    private float joystickCenterX;
+    private float joystickCenterY;
+    private final float JOYSTICK_MAX_DISTANCE = 50f;
+    private final float JOYSTICK_SPEED_FACTOR = 3.0f;
+
+    public GameScreen(boolean useGyroscope) {
+        this.useGyroscope = useGyroscope;
+        if (DEBUG) Gdx.app.log(TAG, "GameScreen constructor called with useGyroscope=" + useGyroscope);
+    }
+
     @Override
     public void resize(int width, int height) {
+        if (DEBUG) Gdx.app.log(TAG, "GameScreen resize() called: width=" + width + ", height=" + height);
         super.resize(width, height);
         viewport.update(width, height);
     }
 
     @Override
     public void show() {
-        super.show();
+        if (DEBUG) Gdx.app.log(TAG, "GameScreen show() called.");
         camera = new OrthographicCamera();
         camera.position.set(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 0);
         camera.update();
@@ -66,48 +77,84 @@ public class GameScreen extends ScreenAdapter {
         flowerBottom = new Texture(Gdx.files.internal("flowerBottom.png"));
         flowerTop = new Texture(Gdx.files.internal("flowerTop.png"));
         flappeeTexture = new Texture(Gdx.files.internal("bee.png"));
+        if (DEBUG) {
+            Gdx.app.log(TAG, "Resources loaded: bg.png, flowerBottom.png, flowerTop.png, bee.png");
+        }
 
         flappee = new Flappee(flappeeTexture);
         flappee.setPosition(WORLD_WIDTH / 4, WORLD_HEIGHT / 2);
+        if (DEBUG) Gdx.app.log(TAG, "Flappee initialized at (" + (WORLD_WIDTH / 4) + ", " + (WORLD_HEIGHT / 2) + ")");
     }
 
     @Override
     public void render(float delta) {
-        super.render(delta);
         update(delta);
         clearScreen();
         draw();
-//        drawDebug();
     }
 
     private void update(float delta) {
         updateFlappee(delta);
         updateFlowers(delta);
         updateScore();
-        if (checkForCollision()) {
-            restart();
+        handleCollisions();
+    }
+
+    private void handleCollisions() {
+        for (Flower flower : flowers) {
+            if (flower.isFlappeeColliding(flappee)) {
+                if (flappee.getX() - flappee.getCollisionCircle().radius <= 0) {
+                    if (DEBUG) Gdx.app.log(TAG, "Collision: Flappee crushed at left boundary. Restarting.");
+                    restart();
+                    return;
+                } else {
+                    if (DEBUG) Gdx.app.log(TAG, "Collision detected, applying bounce.");
+                    flappee.setPosition(flappee.getX() - 30, flappee.getY());
+                    flappee.setVelocity(-100, 0);
+                }
+            }
         }
     }
 
     private void restart() {
+        if (DEBUG) Gdx.app.log(TAG, "Restarting game.");
         flappee.setPosition(WORLD_WIDTH / 4, WORLD_HEIGHT / 2);
+        flappee.setVelocity(0, 0);
         flowers.clear();
         score = 0;
     }
 
-    private boolean checkForCollision() {
-        for (Flower flower : flowers) {
-            if (flower.isFlappeeColliding(flappee)) {
-                return true;
+    private void updateFlappee(float delta) {
+        if (useGyroscope) {
+            flappee.updateWithGyro();
+        } else {
+            if (Gdx.input.isTouched()) {
+                Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+                camera.unproject(touchPos);
+                if (!joystickActive && touchPos.x < WORLD_WIDTH / 2 && touchPos.y < WORLD_HEIGHT / 2) {
+                    joystickActive = true;
+                    joystickCenterX = touchPos.x;
+                    joystickCenterY = touchPos.y;
+                }
+                if (joystickActive) {
+                    float dx = touchPos.x - joystickCenterX;
+                    float dy = touchPos.y - joystickCenterY;
+                    float distance = (float) Math.sqrt(dx * dx + dy * dy);
+                    if (distance > JOYSTICK_MAX_DISTANCE) {
+                        float ratio = JOYSTICK_MAX_DISTANCE / distance;
+                        dx *= ratio;
+                        dy *= ratio;
+                    }
+                    float vx = dx * JOYSTICK_SPEED_FACTOR;
+                    float vy = dy * JOYSTICK_SPEED_FACTOR;
+                    flappee.setVelocity(vx, vy);
+                }
+            } else {
+                joystickActive = false;
+                flappee.setVelocity(0, 0);
             }
         }
-        return false;
-    }
-
-    private void updateFlappee(float delta) {
         flappee.update(delta);
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) flappee.flyUp();
-        if (Gdx.input.isTouched()) flappee.flyUp();
         blockFlappeeLeavingTheWorld();
     }
 
@@ -116,11 +163,15 @@ public class GameScreen extends ScreenAdapter {
         if (flower.getX() < flappee.getX() && !flower.isPointClaimed()) {
             flower.markPointClaimed();
             score++;
+            if (DEBUG) Gdx.app.log(TAG, "Score updated: " + score);
         }
     }
 
     private void blockFlappeeLeavingTheWorld() {
-        flappee.setPosition(flappee.getX(), MathUtils.clamp(flappee.getY(), 0, WORLD_HEIGHT));
+        flappee.setPosition(
+            MathUtils.clamp(flappee.getX(), 0, WORLD_WIDTH),
+            MathUtils.clamp(flappee.getY(), 0, WORLD_HEIGHT)
+        );
     }
 
     private void updateFlowers(float delta) {
@@ -146,6 +197,7 @@ public class GameScreen extends ScreenAdapter {
         Flower newFlower = new Flower(flowerBottom, flowerTop);
         newFlower.setPosition(WORLD_WIDTH + Flower.WIDTH);
         flowers.add(newFlower);
+        if (DEBUG) Gdx.app.log(TAG, "New flower created at x=" + (WORLD_WIDTH + Flower.WIDTH));
     }
 
     private void removeFlowersIfPassed() {
@@ -153,6 +205,7 @@ public class GameScreen extends ScreenAdapter {
             Flower firstFlower = flowers.first();
             if (firstFlower.getX() < -Flower.WIDTH) {
                 flowers.removeValue(firstFlower, true);
+                if (DEBUG) Gdx.app.log(TAG, "Flower removed.");
             }
         }
     }
@@ -176,7 +229,9 @@ public class GameScreen extends ScreenAdapter {
     private void drawScore() {
         String scoreAsString = Integer.toString(score);
         glyphLayout.setText(bitmapFont, scoreAsString);
-        bitmapFont.draw(batch, scoreAsString, (viewport.getWorldWidth() - glyphLayout.width) / 2, (4 * viewport.getWorldHeight() / 5) - glyphLayout.height / 2);
+        bitmapFont.draw(batch, scoreAsString,
+            (viewport.getWorldWidth() - glyphLayout.width) / 2,
+            (4 * viewport.getWorldHeight() / 5) - glyphLayout.height / 2);
     }
 
     private void drawFlowers() {
@@ -184,16 +239,4 @@ public class GameScreen extends ScreenAdapter {
             flower.draw(batch);
         }
     }
-
-    private void drawDebug() {
-        shapeRenderer.setProjectionMatrix(camera.projection);
-        shapeRenderer.setTransformMatrix(camera.view);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        for (Flower flower : flowers) {
-            flower.drawDebug(shapeRenderer);
-        }
-        flappee.drawDebug(shapeRenderer);
-        shapeRenderer.end();
-    }
-
 }

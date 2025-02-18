@@ -11,7 +11,6 @@ import com.badlogic.gdx.math.Rectangle;
 
 public class Flower {
 
-
     private static final float MAX_SPEED_PER_SECOND = 100F;
     private static final float COLLISION_RECTANGLE_WIDTH = 13f;
     private static final float COLLISION_RECTANGLE_HEIGHT = 447f;
@@ -53,10 +52,10 @@ public class Flower {
     public boolean isFlappeeColliding(Flappee flappee) {
         Circle flappeeCollisionCircle = flappee.getCollisionCircle();
         return
-                Intersector.overlaps(flappeeCollisionCircle, ceilingCollisionCircle) ||
-                        Intersector.overlaps(flappeeCollisionCircle, floorCollisionCircle) ||
-                        Intersector.overlaps(flappeeCollisionCircle, ceilingCollisionRectangle) ||
-                        Intersector.overlaps(flappeeCollisionCircle, floorCollisionRectangle);
+            Intersector.overlaps(flappeeCollisionCircle, ceilingCollisionCircle) ||
+                Intersector.overlaps(flappeeCollisionCircle, floorCollisionCircle) ||
+                Intersector.overlaps(flappeeCollisionCircle, ceilingCollisionRectangle) ||
+                Intersector.overlaps(flappeeCollisionCircle, floorCollisionRectangle);
     }
 
     public void setPosition(float x) {
@@ -109,5 +108,13 @@ public class Flower {
         shapeRenderer.rect(floorCollisionRectangle.x, floorCollisionRectangle.y, floorCollisionRectangle.width, floorCollisionRectangle.height);
         shapeRenderer.circle(ceilingCollisionCircle.x, ceilingCollisionCircle.y, ceilingCollisionCircle.radius);
         shapeRenderer.rect(ceilingCollisionRectangle.x, ceilingCollisionRectangle.y, ceilingCollisionRectangle.width, ceilingCollisionRectangle.height);
+    }
+
+    public float getLeftBoundary() {
+        return x;
+    }
+
+    public float getRightBoundary() {
+        return x + WIDTH;
     }
 }
