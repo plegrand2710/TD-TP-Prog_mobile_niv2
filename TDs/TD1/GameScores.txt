@@ -1,0 +1,4 @@
+Joueur - 20
+Joueur - 40
+Joueur - 20
+Joueur - 0

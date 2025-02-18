@@ -21,7 +21,6 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -72,6 +71,9 @@ public class GameScreen extends ScreenAdapter {
 
     private boolean nameRequested = false;
 
+    private float gameTime = 0f;
+    private float lastObstacleTime = 0f;
+    private Array<Obstacle> obstacles = new Array<Obstacle>();
 
     public GameScreen(Game game, String controlMode) {
         this.controlMode = controlMode;
@@ -96,11 +98,8 @@ public class GameScreen extends ScreenAdapter {
         if (uiStage != null) {
             uiStage.getViewport().update(width, height, true);
             touchpad.setBounds(width - 215, 15, 200, 200);
-
         }
     }
-
-
 
     @Override
     public void show() {
@@ -131,8 +130,6 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
-
-
     @Override
     public void render(float delta) {
         switch (state) {
@@ -141,6 +138,7 @@ public class GameScreen extends ScreenAdapter {
                 updateSnake(delta);
                 checkAppleCollision();
                 checkAndPlaceApple();
+                updateObstacles(delta);
                 break;
             case GAME_OVER:
                 checkForRestart();
@@ -148,6 +146,7 @@ public class GameScreen extends ScreenAdapter {
         }
         clearScreen();
         drawGrid();
+        drawObstacles();
         draw();
         if ("touchpad".equalsIgnoreCase(controlMode) && uiStage != null) {
             uiStage.act(delta);
@@ -214,24 +213,27 @@ public class GameScreen extends ScreenAdapter {
     private void checkForRestart() {
         if (state == STATE.GAME_OVER && Gdx.input.justTouched() && !nameRequested) {
             nameRequested = true;
-            Gdx.input.getTextInput(new Input.TextInputListener() {
+            Gdx.app.postRunnable(new Runnable() {
                 @Override
-                public void input(String text) {
-                    scoreAdapter.insertScore(text, score);
-                    game.setScreen(new SplashScreen(game));
-                    dispose();
+                public void run() {
+                    Gdx.input.getTextInput(new Input.TextInputListener() {
+                        @Override
+                        public void input(String text) {
+                            scoreAdapter.insertScore(text, score);
+                            game.setScreen(new SplashScreen(game));
+                            dispose();
+                        }
+                        @Override
+                        public void canceled() {
+                            scoreAdapter.insertScore("Joueur", score);
+                            game.setScreen(new SplashScreen(game));
+                            dispose();
+                        }
+                    }, "Entrez votre nom", "", "Nom");
                 }
-
-                @Override
-                public void canceled() {
-                    scoreAdapter.insertScore("Joueur", score);
-                    game.setScreen(new SplashScreen(game));
-                    dispose();
-                }
-            }, "Entrez votre nom", "", "Nom");
+            });
         }
     }
-
     private void updateDirection(int newSnakeDirection) {
         if (!directionSet && snakeDirection != newSnakeDirection) {
             directionSet = true;
@@ -265,6 +267,7 @@ public class GameScreen extends ScreenAdapter {
             checkForOutOfBounds();
             updateBodyPartsPosition();
             checkSnakeBodyCollision();
+            checkObstacleCollision();
             directionSet = false;
         }
     }
@@ -301,7 +304,6 @@ public class GameScreen extends ScreenAdapter {
             snakeY = gridHeight - gridCellSize;
     }
 
-
     private void updateBodyPartsPosition() {
         if (bodyParts.size > 0) {
             BodyPart bodyPart = bodyParts.removeIndex(0);
@@ -320,7 +322,6 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
-
     private void checkAppleCollision() {
         if (appleAvailable && appleX == snakeX && appleY == snakeY) {
             BodyPart bodyPart = new BodyPart(snakeBody);
@@ -328,6 +329,14 @@ public class GameScreen extends ScreenAdapter {
             bodyParts.insert(0, bodyPart);
             addToScore();
             appleAvailable = false;
+        }
+    }
+
+    private void checkObstacleCollision() {
+        for (Obstacle obs : obstacles) {
+            if (snakeX == obs.x && snakeY == obs.y) {
+                state = STATE.GAME_OVER;
+            }
         }
     }
 
@@ -359,7 +368,14 @@ public class GameScreen extends ScreenAdapter {
         shapeRenderer.end();
     }
 
-
+    private void drawObstacles() {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(Color.RED);
+        for (Obstacle obs : obstacles) {
+            shapeRenderer.rect(obs.x, obs.y, gridCellSize, gridCellSize);
+        }
+        shapeRenderer.end();
+    }
 
     private void draw() {
         batch.setProjectionMatrix(camera.projection);
@@ -391,8 +407,6 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
-
-
     private void drawDebugArrow() {
         if ("gyroscope".equalsIgnoreCase(controlMode) && DEBUG) {
             float debugX = gridWidth - 100;
@@ -410,7 +424,6 @@ public class GameScreen extends ScreenAdapter {
             batch.end();
         }
     }
-
 
     private void setupTouchpad() {
         uiStage = new Stage(new ScreenViewport());
@@ -470,5 +483,49 @@ public class GameScreen extends ScreenAdapter {
             if (!(x == snakeX && y == snakeY))
                 batch.draw(texture, x, y);
         }
+    }
+
+    private class Obstacle {
+        float x, y;
+        public Obstacle(float x, float y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    private void updateObstacles(float delta) {
+        gameTime += delta;
+        if (obstacles.size == 0 && gameTime >= 30) {
+            spawnObstacle();
+            lastObstacleTime = gameTime;
+        }
+        else if (gameTime - lastObstacleTime >= 10) {
+            spawnObstacle();
+            lastObstacleTime = gameTime;
+        }
+    }
+
+    private void spawnObstacle() {
+        int columns = (gridWidth - reservedTouchpadWidth) / gridCellSize;
+        int rows = gridHeight / gridCellSize;
+        float obsX, obsY;
+        boolean collision;
+        int attempts = 0;
+        do {
+            collision = false;
+            obsX = MathUtils.random(columns - 1) * gridCellSize;
+            obsY = MathUtils.random(rows - 1) * gridCellSize;
+            if (obsX == snakeX && obsY == snakeY) collision = true;
+            if (appleAvailable && obsX == appleX && obsY == appleY) collision = true;
+            for (BodyPart bp : bodyParts) {
+                if (bp.x == obsX && bp.y == obsY) collision = true;
+            }
+            for (Obstacle obs : obstacles) {
+                if (obs.x == obsX && obs.y == obsY) collision = true;
+            }
+            attempts++;
+        } while(collision && attempts < 100);
+
+        obstacles.add(new Obstacle(obsX, obsY));
     }
 }
