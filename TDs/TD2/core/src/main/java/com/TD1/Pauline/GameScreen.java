@@ -107,11 +107,32 @@ public class GameScreen extends ScreenAdapter {
                     if (DEBUG) Gdx.app.log(TAG, "Collision: Flappee crushed at left boundary. Restarting.");
                     restart();
                     return;
-                } else {
-                    if (DEBUG) Gdx.app.log(TAG, "Collision detected, applying bounce.");
-                    flappee.setPosition(flappee.getX() - 30, flappee.getY());
-                    flappee.setVelocity(-100, 0);
                 }
+
+                float flowerCenterX = flower.getX() + Flower.WIDTH / 2;
+                float flowerCenterY = flower.getCenterY();  
+                float dx = flappee.getX() - flowerCenterX;
+                float dy = flappee.getY() - flowerCenterY;
+                float angle = MathUtils.atan2(dy, dx) * MathUtils.radiansToDegrees;
+                if (angle < 0) {
+                    angle += 360;
+                }
+                if (DEBUG) Gdx.app.log(TAG, "Collision angle: " + angle + " degrees.");
+
+                if (angle >= 45 && angle <= 270) {
+                    if (angle >= 45 && angle <= 135) {
+                        flappee.setVelocity(-100, 20);
+                    } else {
+                        flappee.setVelocity(-100, 0);
+                    }
+                } else {
+                    flappee.setVelocity(50, 0);
+                }
+
+                float bounceDistance = 30;
+                float offsetX = bounceDistance * MathUtils.cos(angle * MathUtils.degreesToRadians);
+                float offsetY = bounceDistance * MathUtils.sin(angle * MathUtils.degreesToRadians);
+                flappee.setPosition(flappee.getX() + offsetX, flappee.getY() + offsetY);
             }
         }
     }

@@ -117,4 +117,8 @@ public class Flower {
     public float getRightBoundary() {
         return x + WIDTH;
     }
+
+    public float getCenterY() {
+        return floorCollisionCircle.y;
+    }
 }
