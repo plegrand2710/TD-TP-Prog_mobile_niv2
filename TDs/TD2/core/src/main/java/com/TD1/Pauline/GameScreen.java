@@ -1,11 +1,13 @@
 package com.TD1.Pauline;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
@@ -13,8 +15,12 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class GameScreen extends ScreenAdapter {
@@ -43,11 +49,15 @@ public class GameScreen extends ScreenAdapter {
     private boolean useGyroscope;
     private float gyroscopeSensitivity = 5.0f;
 
+    private Stage uiStage;
+    private Touchpad touchpad;
     private boolean joystickActive = false;
     private float joystickCenterX;
     private float joystickCenterY;
     private final float JOYSTICK_MAX_DISTANCE = 50f;
     private final float JOYSTICK_SPEED_FACTOR = 3.0f;
+
+    private final float TOUCHPAD_SPEED_FACTOR = 300f;
 
     public GameScreen(boolean useGyroscope) {
         this.useGyroscope = useGyroscope;
@@ -59,6 +69,10 @@ public class GameScreen extends ScreenAdapter {
         if (DEBUG) Gdx.app.log(TAG, "GameScreen resize() called: width=" + width + ", height=" + height);
         super.resize(width, height);
         viewport.update(width, height);
+        if (!useGyroscope && uiStage != null) {
+            //uiStage.getViewport().update((int) WORLD_WIDTH, (int) WORLD_HEIGHT, true);
+            touchpad.setBounds(WORLD_WIDTH - 215, 15, 200, 200);
+        }
     }
 
     @Override
@@ -84,13 +98,56 @@ public class GameScreen extends ScreenAdapter {
         flappee = new Flappee(flappeeTexture);
         flappee.setPosition(WORLD_WIDTH / 4, WORLD_HEIGHT / 2);
         if (DEBUG) Gdx.app.log(TAG, "Flappee initialized at (" + (WORLD_WIDTH / 4) + ", " + (WORLD_HEIGHT / 2) + ")");
+        if (!useGyroscope) {
+            setupTouchpad();
+        }
     }
+
+    private void setupTouchpad() {
+        // Utilise un FitViewport fixe pour l'UI, par exemple avec WORLD_WIDTH et WORLD_HEIGHT
+        uiStage = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
+
+        Touchpad.TouchpadStyle touchpadStyle = new Touchpad.TouchpadStyle();
+
+        // Création du fond du touchpad
+        Pixmap bgPixmap = new Pixmap(100, 100, Pixmap.Format.RGBA8888);
+        bgPixmap.setColor(Color.GRAY);
+        bgPixmap.fillCircle(50, 50, 50);
+        Texture bgTexture = new Texture(bgPixmap);
+        bgPixmap.dispose();
+
+        // Création du knob du touchpad
+        Pixmap knobPixmap = new Pixmap(50, 50, Pixmap.Format.RGBA8888);
+        knobPixmap.setColor(Color.DARK_GRAY);
+        knobPixmap.fillCircle(25, 25, 25);
+        Texture knobTexture = new Texture(knobPixmap);
+        knobPixmap.dispose();
+
+        touchpadStyle.background = new TextureRegionDrawable(bgTexture);
+        touchpadStyle.knob = new TextureRegionDrawable(knobTexture);
+
+        // Crée le touchpad avec une deadzone de 10
+        touchpad = new Touchpad(10, touchpadStyle);
+        // Position fixe dans l'UI, par exemple en utilisant WORLD_WIDTH pour le calcul
+        touchpad.setBounds(WORLD_WIDTH - 215, 15, 200, 200);
+        uiStage.addActor(touchpad);
+
+        // Combine les InputProcessors
+        InputMultiplexer multiplexer = new InputMultiplexer();
+        multiplexer.addProcessor(uiStage);
+        Gdx.input.setInputProcessor(multiplexer);
+    }
+
 
     @Override
     public void render(float delta) {
         update(delta);
         clearScreen();
         draw();
+        if (!useGyroscope && uiStage != null) {
+            uiStage.act(delta);
+            uiStage.draw();
+        }
     }
 
     private void update(float delta) {
@@ -110,7 +167,7 @@ public class GameScreen extends ScreenAdapter {
                 }
 
                 float flowerCenterX = flower.getX() + Flower.WIDTH / 2;
-                float flowerCenterY = flower.getCenterY();  
+                float flowerCenterY = flower.getCenterY();
                 float dx = flappee.getX() - flowerCenterX;
                 float dy = flappee.getY() - flowerCenterY;
                 float angle = MathUtils.atan2(dy, dx) * MathUtils.radiansToDegrees;
@@ -149,30 +206,12 @@ public class GameScreen extends ScreenAdapter {
         if (useGyroscope) {
             flappee.updateWithGyro();
         } else {
-            if (Gdx.input.isTouched()) {
-                Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-                camera.unproject(touchPos);
-                if (!joystickActive && touchPos.x < WORLD_WIDTH / 2 && touchPos.y < WORLD_HEIGHT / 2) {
-                    joystickActive = true;
-                    joystickCenterX = touchPos.x;
-                    joystickCenterY = touchPos.y;
-                }
-                if (joystickActive) {
-                    float dx = touchPos.x - joystickCenterX;
-                    float dy = touchPos.y - joystickCenterY;
-                    float distance = (float) Math.sqrt(dx * dx + dy * dy);
-                    if (distance > JOYSTICK_MAX_DISTANCE) {
-                        float ratio = JOYSTICK_MAX_DISTANCE / distance;
-                        dx *= ratio;
-                        dy *= ratio;
-                    }
-                    float vx = dx * JOYSTICK_SPEED_FACTOR;
-                    float vy = dy * JOYSTICK_SPEED_FACTOR;
-                    flappee.setVelocity(vx, vy);
-                }
-            } else {
-                joystickActive = false;
-                flappee.setVelocity(0, 0);
+            if (touchpad != null) {
+                float knobX = touchpad.getKnobPercentX(); // -1 à 1
+                float knobY = touchpad.getKnobPercentY(); // -1 à 1
+                float vx = knobX * TOUCHPAD_SPEED_FACTOR;
+                float vy = knobY * TOUCHPAD_SPEED_FACTOR;
+                flappee.setVelocity(vx, vy);
             }
         }
         flappee.update(delta);
