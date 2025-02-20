@@ -59,6 +59,11 @@ public class GameScreen extends ScreenAdapter {
 
     private final float TOUCHPAD_SPEED_FACTOR = 300f;
 
+    private Array<Monster> monsters = new Array<Monster>();
+    private Texture monsterTexture;
+    private float monsterSpawnTimer = 0f;
+    private float monsterSpawnInterval = 10f;
+
     public GameScreen(boolean useGyroscope) {
         this.useGyroscope = useGyroscope;
         if (DEBUG) Gdx.app.log(TAG, "GameScreen constructor called with useGyroscope=" + useGyroscope);
@@ -90,6 +95,8 @@ public class GameScreen extends ScreenAdapter {
         flowerBottom = new Texture(Gdx.files.internal("flowerBottom.png"));
         flowerTop = new Texture(Gdx.files.internal("flowerTop.png"));
         flappeeTexture = new Texture(Gdx.files.internal("bee.png"));
+        monsterTexture = new Texture(Gdx.files.internal("monster.png"));
+
         if (DEBUG) {
             Gdx.app.log(TAG, "Resources loaded: bg.png, flowerBottom.png, flowerTop.png, bee.png");
         }
@@ -147,8 +154,51 @@ public class GameScreen extends ScreenAdapter {
         updateFlappee(delta);
         updateFlowers(delta);
         updateScore();
+        updateMonsters(delta);
+        checkMonsterCollisions();
         handleCollisions();
         updateLevel(delta);
+    }
+
+    private void updateMonsters(float delta) {
+        monsterSpawnTimer += delta;
+        if (monsterSpawnTimer >= monsterSpawnInterval) {
+            spawnMonster();
+            monsterSpawnTimer = 0f;
+        }
+        for (Monster monster : monsters) {
+            monster.update(delta);
+        }
+        for (int i = monsters.size - 1; i >= 0; i--) {
+            Monster m = monsters.get(i);
+            float effectiveWidth = m.getTexture().getWidth() * m.getScale();
+            if (m.getX() < -effectiveWidth || m.getX() > WORLD_WIDTH) {
+                monsters.removeIndex(i);
+            }
+        }
+    }
+
+    private void spawnMonster() {
+        float x = WORLD_WIDTH;
+        float y = MathUtils.random(0, WORLD_HEIGHT - monsterTexture.getHeight() * 0.5f);
+        float speed = 100 + (currentStage - 1) * 20;
+        float verticalSpeed = 0f;
+        if (currentStage >= 3) {
+            verticalSpeed = MathUtils.random(-50, 50) + (currentStage - 2) * 10;
+        }
+        monsters.add(new Monster(monsterTexture, x, y, speed, true, 0.2f, verticalSpeed));
+        if (DEBUG) Gdx.app.log(TAG, "Monster spawned at (" + x + ", " + y + ") with speed " + speed
+            + " and verticalSpeed " + verticalSpeed);
+    }
+
+    private void checkMonsterCollisions() {
+        for (Monster monster : monsters) {
+            if (monster.collidesWith(flappee)) {
+                if (DEBUG) Gdx.app.log(TAG, "Monster collision detected. Restarting.");
+                restart();
+                return;
+            }
+        }
     }
 
     private void updateLevel(float delta) {
@@ -159,7 +209,9 @@ public class GameScreen extends ScreenAdapter {
             stageMessageTime = 3f;
             currentStage++;
             scrollSpeedFactor += 0.2f;
-            if (DEBUG) Gdx.app.log(TAG, "Level up: " + stageMessage + " - new speed factor: " + scrollSpeedFactor);
+            monsterSpawnInterval = MathUtils.clamp(monsterSpawnInterval - 0.5f, 5f, 10f);
+            if (DEBUG) Gdx.app.log(TAG, "Level up: " + stageMessage + " - new speed factor: "
+                + scrollSpeedFactor + ", monster spawn interval: " + monsterSpawnInterval);
         }
         if (stageMessageTime > 0) {
             stageMessageTime -= delta;
@@ -209,10 +261,12 @@ public class GameScreen extends ScreenAdapter {
         flappee.setPosition(WORLD_WIDTH / 4, WORLD_HEIGHT / 2);
         flappee.setVelocity(0, 0);
         flowers.clear();
+        monsters.clear();
         score = 0;
         levelTimer = 0f;
         currentStage = 1;
         scrollSpeedFactor = 1.0f;
+        monsterSpawnInterval = 10f;
     }
 
     private void updateFlappee(float delta) {
@@ -302,6 +356,9 @@ public class GameScreen extends ScreenAdapter {
         batch.begin();
         batch.draw(background, 0, 0);
         drawFlowers();
+        for (Monster monster : monsters) {
+            monster.draw(batch);
+        }
         flappee.draw(batch);
         drawScore();
         if (stageMessageTime > 0) {
@@ -323,5 +380,19 @@ public class GameScreen extends ScreenAdapter {
         for (Flower flower : flowers) {
             flower.draw(batch);
         }
+    }
+
+    @Override
+    public void dispose() {
+        batch.dispose();
+        background.dispose();
+        flowerBottom.dispose();
+        flowerTop.dispose();
+        flappeeTexture.dispose();
+        monsterTexture.dispose();
+        bitmapFont.dispose();
+        shapeRenderer.dispose();
+        if (uiStage != null)
+            uiStage.dispose();
     }
 }
