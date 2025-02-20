@@ -121,4 +121,12 @@ public class Flower {
     public float getCenterY() {
         return floorCollisionCircle.y;
     }
+
+    public float getGapBottom() {
+        return floorCollisionRectangle.y + floorCollisionRectangle.height;
+    }
+
+    public float getGapTop() {
+        return ceilingCollisionRectangle.y;
+    }
 }

@@ -228,10 +228,18 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void blockFlappeeLeavingTheWorld() {
-        flappee.setPosition(
-            MathUtils.clamp(flappee.getX(), 0, WORLD_WIDTH),
-            MathUtils.clamp(flappee.getY(), 0, WORLD_HEIGHT)
-        );
+        float clampedX = MathUtils.clamp(flappee.getX(), 0, WORLD_WIDTH);
+        float clampedY = MathUtils.clamp(flappee.getY(), 0, WORLD_HEIGHT);
+
+        for (Flower flower : flowers) {
+            if (flappee.getX() + flappee.getCollisionCircle().radius > flower.getX() &&
+                flappee.getX() - flappee.getCollisionCircle().radius < flower.getX() + Flower.WIDTH) {
+                float gapBottom = flower.getGapBottom();
+                float gapTop = flower.getGapTop();
+                clampedY = MathUtils.clamp(flappee.getY(), gapBottom, gapTop);
+            }
+        }
+        flappee.setPosition(clampedX, clampedY);
     }
 
     private void updateFlowers(float delta) {
