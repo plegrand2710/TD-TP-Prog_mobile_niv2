@@ -240,7 +240,12 @@ public class GameScreen extends ScreenAdapter {
 
                 if (angle >= 45 && angle <= 270) {
                     if (angle >= 45 && angle <= 135) {
-                        flappee.setVelocity(-100, 20);
+                        float gapTop = flower.getGapTop();
+                        if (flappee.getY() >= gapTop - 15) {
+                            flappee.setVelocity(-100, 0);
+                        } else {
+                            flappee.setVelocity(-100, 20);
+                        }
                     } else {
                         flappee.setVelocity(-100, 0);
                     }
