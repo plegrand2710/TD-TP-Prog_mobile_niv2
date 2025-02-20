@@ -47,15 +47,15 @@ public class GameScreen extends ScreenAdapter {
     private Texture flappeeTexture;
 
     private boolean useGyroscope;
-    private float gyroscopeSensitivity = 5.0f;
 
     private Stage uiStage;
     private Touchpad touchpad;
-    private boolean joystickActive = false;
-    private float joystickCenterX;
-    private float joystickCenterY;
-    private final float JOYSTICK_MAX_DISTANCE = 50f;
-    private final float JOYSTICK_SPEED_FACTOR = 3.0f;
+
+    private float levelTimer = 0f;
+    private int currentStage = 1;
+    private float stageMessageTime = 0f;
+    private String stageMessage = "";
+    private float scrollSpeedFactor = 1.0f;
 
     private final float TOUCHPAD_SPEED_FACTOR = 300f;
 
@@ -70,7 +70,6 @@ public class GameScreen extends ScreenAdapter {
         super.resize(width, height);
         viewport.update(width, height);
         if (!useGyroscope && uiStage != null) {
-            //uiStage.getViewport().update((int) WORLD_WIDTH, (int) WORLD_HEIGHT, true);
             touchpad.setBounds(WORLD_WIDTH - 215, 15, 200, 200);
         }
     }
@@ -104,19 +103,16 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void setupTouchpad() {
-        // Utilise un FitViewport fixe pour l'UI, par exemple avec WORLD_WIDTH et WORLD_HEIGHT
         uiStage = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
 
         Touchpad.TouchpadStyle touchpadStyle = new Touchpad.TouchpadStyle();
 
-        // Création du fond du touchpad
         Pixmap bgPixmap = new Pixmap(100, 100, Pixmap.Format.RGBA8888);
         bgPixmap.setColor(Color.GRAY);
         bgPixmap.fillCircle(50, 50, 50);
         Texture bgTexture = new Texture(bgPixmap);
         bgPixmap.dispose();
 
-        // Création du knob du touchpad
         Pixmap knobPixmap = new Pixmap(50, 50, Pixmap.Format.RGBA8888);
         knobPixmap.setColor(Color.DARK_GRAY);
         knobPixmap.fillCircle(25, 25, 25);
@@ -126,13 +122,10 @@ public class GameScreen extends ScreenAdapter {
         touchpadStyle.background = new TextureRegionDrawable(bgTexture);
         touchpadStyle.knob = new TextureRegionDrawable(knobTexture);
 
-        // Crée le touchpad avec une deadzone de 10
         touchpad = new Touchpad(10, touchpadStyle);
-        // Position fixe dans l'UI, par exemple en utilisant WORLD_WIDTH pour le calcul
         touchpad.setBounds(WORLD_WIDTH - 215, 15, 200, 200);
         uiStage.addActor(touchpad);
 
-        // Combine les InputProcessors
         InputMultiplexer multiplexer = new InputMultiplexer();
         multiplexer.addProcessor(uiStage);
         Gdx.input.setInputProcessor(multiplexer);
@@ -155,6 +148,23 @@ public class GameScreen extends ScreenAdapter {
         updateFlowers(delta);
         updateScore();
         handleCollisions();
+        updateLevel(delta);
+    }
+
+    private void updateLevel(float delta) {
+        levelTimer += delta;
+        if (levelTimer >= 60f) {
+            levelTimer = 0f;
+            stageMessage = "Stage " + currentStage;
+            stageMessageTime = 3f;
+            currentStage++;
+            scrollSpeedFactor += 0.2f;
+            if (DEBUG) Gdx.app.log(TAG, "Level up: " + stageMessage + " - new speed factor: " + scrollSpeedFactor);
+        }
+        if (stageMessageTime > 0) {
+            stageMessageTime -= delta;
+            if (stageMessageTime < 0) stageMessageTime = 0;
+        }
     }
 
     private void handleCollisions() {
@@ -200,6 +210,9 @@ public class GameScreen extends ScreenAdapter {
         flappee.setVelocity(0, 0);
         flowers.clear();
         score = 0;
+        levelTimer = 0f;
+        currentStage = 1;
+        scrollSpeedFactor = 1.0f;
     }
 
     private void updateFlappee(float delta) {
@@ -207,8 +220,8 @@ public class GameScreen extends ScreenAdapter {
             flappee.updateWithGyro();
         } else {
             if (touchpad != null) {
-                float knobX = touchpad.getKnobPercentX(); // -1 à 1
-                float knobY = touchpad.getKnobPercentY(); // -1 à 1
+                float knobX = touchpad.getKnobPercentX();
+                float knobY = touchpad.getKnobPercentY();
                 float vx = knobX * TOUCHPAD_SPEED_FACTOR;
                 float vy = knobY * TOUCHPAD_SPEED_FACTOR;
                 flappee.setVelocity(vx, vy);
@@ -244,7 +257,7 @@ public class GameScreen extends ScreenAdapter {
 
     private void updateFlowers(float delta) {
         for (Flower flower : flowers) {
-            flower.update(delta);
+            flower.update(delta * scrollSpeedFactor);
         }
         checkIfNewFlowerIsNeeded();
         removeFlowersIfPassed();
@@ -291,6 +304,10 @@ public class GameScreen extends ScreenAdapter {
         drawFlowers();
         flappee.draw(batch);
         drawScore();
+        if (stageMessageTime > 0) {
+            glyphLayout.setText(bitmapFont, stageMessage);
+            bitmapFont.draw(batch, stageMessage, (WORLD_WIDTH - glyphLayout.width) / 2, (WORLD_HEIGHT + glyphLayout.height) / 2);
+        }
         batch.end();
     }
 
