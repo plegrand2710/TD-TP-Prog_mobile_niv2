@@ -1,0 +1,199 @@
+space_warrior.png
+size:2048,2048
+repeat:none
+Background-layer
+bounds:2,6,1668,900
+Coin
+index:1
+bounds:1672,606,300,300
+Coin
+index:3
+bounds:1672,304,300,300
+Coin
+index:0
+bounds:1672,2,300,300
+Game Background
+bounds:2,908,2000,1066
+
+space_warrior2.png
+size:2048,2048
+repeat:none
+Alien Fly (6)
+bounds:1418,291,512,512
+Coins Collected UI
+bounds:1418,805,548,165
+GUI box
+bounds:710,80,706,890
+Planet (1)
+bounds:1706,7,287,282
+Planet (4)
+bounds:1418,2,286,287
+Planets
+bounds:2,972,2000,1066
+Play GUI
+bounds:2,80,706,890
+
+space_warrior3.png
+size:2048,2048
+repeat:none
+Blank Button-2
+bounds:2,105,460,165
+Bullet (1)
+bounds:1736,1149,200,200
+Bullet (2)
+bounds:926,70,200,200
+Coin
+index:2
+bounds:1736,1720,300,300
+Game Logo
+bounds:2,272,1144,722
+Game Over GUI
+bounds:1028,1130,706,890
+ICON
+bounds:2,996,1024,1024
+Pause BUtton
+bounds:1736,1554,272,164
+Planet (2)
+bounds:1736,1351,204,201
+Planet (3)
+bounds:1028,1006,121,122
+Play Button
+bounds:464,105,460,165
+Rocket Explode (2)
+bounds:1148,504,800,500
+Rocket Explode (3)
+bounds:1148,2,800,500
+
+space_warrior4.png
+size:2048,2048
+repeat:none
+Blank Button
+bounds:464,13,432,165
+Bullet (3)
+bounds:1830,1808,200,200
+Electric Obstacles (1)
+bounds:2,180,1024,400
+Electric Obstacles (4)
+bounds:2,582,1024,400
+Exit Button
+bounds:1830,1633,200,173
+ICON..
+bounds:2,984,1024,1024
+Restart BUtton
+bounds:2,13,460,165
+Rocket Explode (1)
+bounds:1028,2,800,500
+Rocket Explode (4)
+bounds:1028,1508,800,500
+Rocket Explode (5)
+bounds:1028,1006,800,500
+Rocket Explode (6)
+bounds:1028,504,800,500
+Rocket Explode (7)
+bounds:1028,504,800,500
+
+space_warrior5.png
+size:2048,2048
+repeat:none
+Alien Die (3)
+bounds:1318,918,512,512
+Character Death (2)
+bounds:804,204,512,512
+Character Fire (3)
+bounds:1318,404,512,512
+Character Fly (3)
+bounds:804,718,512,512
+Electric Obstacles (2)
+bounds:2,1634,1024,400
+Electric Obstacles (3)
+bounds:2,1232,1024,400
+Rocket (1)
+bounds:1028,1432,800,300
+Rocket (2)
+bounds:2,628,800,300
+Rocket (3)
+bounds:2,326,800,300
+Rocket (4)
+bounds:2,24,800,300
+Rocket (5)
+bounds:1028,1734,800,300
+Rocket (6)
+bounds:2,930,800,300
+Shield (4)
+bounds:1318,2,400,400
+
+space_warrior6.png
+size:2048,2048
+repeat:none
+Alien Die (4)
+bounds:516,1432,512,512
+Alien Die (5)
+bounds:1030,404,512,512
+Alien Fly (1)
+bounds:2,404,512,512
+Alien Fly (7)
+bounds:516,918,512,512
+Character Death (3)
+bounds:2,1432,512,512
+Character Death (4)
+bounds:1030,918,512,512
+Character Fire (4)
+bounds:1030,1432,512,512
+Character Fly (4)
+bounds:2,918,512,512
+Character Fly (5)
+bounds:516,404,512,512
+Shield (1)
+bounds:1544,1544,400,400
+Shield (2)
+bounds:404,2,400,400
+Shield (3)
+bounds:1544,1142,400,400
+Shield (5)
+bounds:2,2,400,400
+
+space_warrior7.png
+size:2048,2048
+repeat:none
+Alien Die (6)
+bounds:516,516,512,512
+Alien Die (7)
+bounds:1030,2,512,512
+Alien Fly (2)
+bounds:2,1030,512,512
+Alien Fly (3)
+bounds:1030,1030,512,512
+Character Death (5)
+bounds:2,2,512,512
+Character Death (6)
+bounds:516,2,512,512
+Character Fire (5)
+bounds:2,516,512,512
+Character Fly (6)
+bounds:516,1030,512,512
+Character Fly (7)
+bounds:1030,516,512,512
+
+space_warrior8.png
+size:2048,2048
+repeat:none
+Alien Die (1)
+bounds:516,1030,512,512
+Alien Die (2)
+bounds:516,2,512,512
+Alien Fly (4)
+bounds:2,516,512,512
+Alien Fly (5)
+bounds:1030,516,512,512
+Character Death (1)
+bounds:516,516,512,512
+Character Death (7)
+bounds:2,2,512,512
+Character Fire (2)
+bounds:1030,2,512,512
+Character Fly (1)
+bounds:2,1030,512,512
+Character Fire (1)
+bounds:2,1030,512,512
+Character Fly (2)
+bounds:1030,1030,512,512
