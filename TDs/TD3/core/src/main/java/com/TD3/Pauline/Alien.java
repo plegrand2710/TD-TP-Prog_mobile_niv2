@@ -40,7 +40,6 @@ public class Alien {
         batch.draw(region, x, y, region.getRegionWidth() * scale, region.getRegionHeight() * scale);
     }
 
-    // Vérifie la collision avec le cosmonaute
     public boolean collidesWith(Cosmonaute cosmo) {
         float alienRadius = (region.getRegionWidth() * scale) / 2f;
         float dx = (x + alienRadius) - cosmo.getX();
@@ -50,8 +49,9 @@ public class Alien {
     }
 
     public float getX() { return x; }
-    public float getY() { return y; }
-
+    public float getY() {
+        return y;
+    }
     public TextureRegion getRegion() { return region; }
     public float getScale() { return scale; }
 }

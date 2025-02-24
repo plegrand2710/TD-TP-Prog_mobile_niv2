@@ -3,7 +3,6 @@ package com.TD3.Pauline;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -16,6 +15,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
@@ -23,38 +23,33 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class GameScreen extends ScreenAdapter {
-    private static final boolean DEBUG = true;
-    private static final float WORLD_WIDTH = 480;
-    private static final float WORLD_HEIGHT = 640;
+    private static final boolean DEBUG = false;
+    private static final String TAG = "SpaceWarriorApp";
+
+    private float WORLD_WIDTH;
+    private float WORLD_HEIGHT;
     private static final float GAP_BETWEEN_PLANETES = 200f;
     private static final float TOUCHPAD_SPEED = 300f;
 
     private ShapeRenderer shapeRenderer;
     private Viewport viewport;
-    private Camera camera;
+    private OrthographicCamera camera;
     private BitmapFont bitmapFont;
     private GlyphLayout glyphLayout;
     private SpriteBatch batch;
 
-    // Utilisation de Cosmonaute au lieu de Flappee
     private Cosmonaute cosmonaute;
     private Array<Planete> planetes = new Array<Planete>();
     private int score = 0;
 
-    // On charge l'atlas unique contenant tous les assets
-    private TextureAtlas spaceAtlas;
+    private TextureAtlas atlas;
     private TextureRegion backgroundRegion;
-
-    // Récupération des régions pour les planètes et le champ d’énergie
-    private TextureRegion planetRegion1; // "planet1" (space_warrior3)
-    private TextureRegion planetRegion2; // "planet2" (space_warrior5)
-    private TextureRegion energyRegion;  // "energy" (space_warrior4)
-
-    // Région pour Alien
-    private TextureRegion alienRegion;   // "alien" (space_warrior6)
-
-    // Bouton de tir
-    private TextureRegion shootButtonRegion; // "shootButton" (space_warrior2)
+    private TextureRegion planetRegion1;
+    private TextureRegion planetRegion2;
+    private TextureRegion energyRegion;
+    private TextureRegion alienRegion;
+    private TextureRegion shootButtonRegion;
+    private Skin skin;
 
     private boolean useGyroscope;
 
@@ -72,7 +67,6 @@ public class GameScreen extends ScreenAdapter {
     private float alienSpawnTimer = 0f;
     private float alienSpawnInterval = 10f;
 
-    // Listes de missiles
     private final Array<Missile> playerMissiles = new Array<Missile>();
     private final Array<Missile> enemyMissiles = new Array<Missile>();
     private float enemyMissileSpawnTimer = 0f;
@@ -80,21 +74,30 @@ public class GameScreen extends ScreenAdapter {
 
     public GameScreen(boolean useGyroscope) {
         this.useGyroscope = useGyroscope;
+        WORLD_WIDTH = Gdx.graphics.getWidth();
+        WORLD_HEIGHT = Gdx.graphics.getHeight();
+        if (DEBUG) Gdx.app.log(TAG, "GameScreen constructor called with useGyroscope=" + useGyroscope);
     }
 
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height);
         if (!useGyroscope && uiStage != null) {
-            touchpad.setBounds(WORLD_WIDTH - 215, 15, 200, 200);
+            float touchpadSize = WORLD_WIDTH * 0.2f;
+            touchpad.setBounds(WORLD_WIDTH - touchpadSize - 20, 20, touchpadSize, touchpadSize);
+
+            float buttonSize = WORLD_WIDTH * 0.1f;
+            shootButton.setSize(buttonSize, buttonSize);
             shootButton.setPosition(20, 20);
         }
+        viewport.update(width, height, true);
+        if (DEBUG) Gdx.app.log(TAG, "GameScreen resize() called: width=" + width + ", height=" + height);
     }
 
     @Override
     public void show() {
-        camera = new OrthographicCamera();
-        camera.position.set(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 0);
+        if (DEBUG) Gdx.app.log(TAG, "GameScreen show() called.");
+        camera = new OrthographicCamera(WORLD_WIDTH, WORLD_HEIGHT);
+        camera.setToOrtho(false, WORLD_WIDTH, WORLD_HEIGHT);
         camera.update();
         viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
         bitmapFont = new BitmapFont();
@@ -102,39 +105,57 @@ public class GameScreen extends ScreenAdapter {
         shapeRenderer = new ShapeRenderer();
         batch = new SpriteBatch();
 
-        // Charge l'atlas contenant tous les assets
-        spaceAtlas = new TextureAtlas(Gdx.files.internal("space_warrior.atlas"));
+        atlas = new TextureAtlas(Gdx.files.internal("space_warrior.atlas"));
+        if (DEBUG) Gdx.app.log(TAG, "Atlas loaded from space_warrior.atlas");
 
-        // Récupère les régions depuis l’atlas
-        backgroundRegion = spaceAtlas.findRegion("background");
-        planetRegion1 = spaceAtlas.findRegion("planet1");
-        planetRegion2 = spaceAtlas.findRegion("planet2");
-        energyRegion = spaceAtlas.findRegion("energy");
-        alienRegion = spaceAtlas.findRegion("alien");
-        shootButtonRegion = spaceAtlas.findRegion("shootButton");
+        backgroundRegion = atlas.findRegion("Game Background");
+        if (backgroundRegion == null && DEBUG) Gdx.app.log(TAG, "Failed to load background region!");
 
-        // Crée le cosmonaute en lui passant l'atlas
-        cosmonaute = new Cosmonaute(spaceAtlas);
+        planetRegion1 = atlas.findRegion("Planet (1)");
+        if (planetRegion1 == null && DEBUG) Gdx.app.log(TAG, "Failed to load planetRegion1!");
+
+        planetRegion2 = atlas.findRegion("Planet (4)");
+        if (planetRegion2 == null && DEBUG) Gdx.app.log(TAG, "Failed to load planetRegion2!");
+
+        energyRegion = atlas.findRegion("Electric Obstacles (1)");
+        if (energyRegion == null && DEBUG) Gdx.app.log(TAG, "Failed to load energyRegion!");
+
+        alienRegion = atlas.findRegion("Alien Fly (6)");
+        if (alienRegion == null && DEBUG) Gdx.app.log(TAG, "Failed to load alienRegion!");
+
+        shootButtonRegion = atlas.findRegion("Blank Button-2");
+        if (shootButtonRegion == null && DEBUG) Gdx.app.log(TAG, "Failed to load shootButtonRegion!");
+
+        cosmonaute = new Cosmonaute(atlas);
         cosmonaute.setPosition(WORLD_WIDTH / 4, WORLD_HEIGHT / 2);
+        if (DEBUG) {
+            Gdx.app.log(TAG, "Cosmonaute initialized at position -> X: " + (WORLD_WIDTH / 4) + ", Y: " + (WORLD_HEIGHT / 2));
+        }
 
+        if (DEBUG) {
+            if (backgroundRegion != null) {
+                Gdx.app.log(TAG, "Background dimensions -> Width: " + backgroundRegion.getRegionWidth() + ", Height: " + backgroundRegion.getRegionHeight());
+            }
+            if (planetRegion1 != null) {
+                Gdx.app.log(TAG, "Planet (1) dimensions -> Width: " + planetRegion1.getRegionWidth() + ", Height: " + planetRegion1.getRegionHeight());
+            }
+            if (alienRegion != null) {
+                Gdx.app.log(TAG, "Alien Fly (6) dimensions -> Width: " + alienRegion.getRegionWidth() + ", Height: " + alienRegion.getRegionHeight());
+            }
+        }
         if (!useGyroscope) {
             setupTouchpad();
             setupShootButton();
         }
-
-        // Crée la première planète
         createNewPlanete();
     }
 
     private void setupTouchpad() {
         uiStage = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
+        skin = new Skin(Gdx.files.internal("uiskin.json"));
         Touchpad.TouchpadStyle style = new Touchpad.TouchpadStyle();
-        // Ici, on crée des drawable simples à partir de régions de l’atlas si besoin
-        // Pour cet exemple, nous utilisons le même drawable pour background et knob
-        TextureRegionDrawable bgDrawable = new TextureRegionDrawable(spaceAtlas.findRegion("touchpad_bg"));
-        TextureRegionDrawable knobDrawable = new TextureRegionDrawable(spaceAtlas.findRegion("touchpad_knob"));
-        style.background = bgDrawable;
-        style.knob = knobDrawable;
+        style.background = skin.getDrawable("touchpadBackground");
+        style.knob = skin.getDrawable("touchpadKnob");
         touchpad = new Touchpad(10, style);
         touchpad.setBounds(WORLD_WIDTH - 215, 15, 200, 200);
         uiStage.addActor(touchpad);
@@ -142,6 +163,7 @@ public class GameScreen extends ScreenAdapter {
         InputMultiplexer multiplexer = new InputMultiplexer();
         multiplexer.addProcessor(uiStage);
         Gdx.input.setInputProcessor(multiplexer);
+        if (DEBUG) Gdx.app.log(TAG, "Touchpad initialized.");
     }
 
     private void setupShootButton() {
@@ -152,9 +174,11 @@ public class GameScreen extends ScreenAdapter {
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
                 Missile missile = cosmonaute.tirer();
                 playerMissiles.add(missile);
+                if (DEBUG) Gdx.app.log(TAG, "Shoot button tapped, missile fired.");
             }
         });
         uiStage.addActor(shootButton);
+        if (DEBUG) Gdx.app.log(TAG, "Shoot button initialized.");
     }
 
     @Override
@@ -169,10 +193,10 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void update(float delta) {
-        // Déclenchement du tir par simple toucher
         if (Gdx.input.justTouched()) {
             Missile missile = cosmonaute.tirer();
             playerMissiles.add(missile);
+            if (DEBUG) Gdx.app.log(TAG, "Screen touched, missile fired.");
         }
         updateCosmonaute(delta);
         updatePlanetes(delta);
@@ -253,6 +277,7 @@ public class GameScreen extends ScreenAdapter {
         float speed = 100 + (currentStage - 1) * 20;
         float verticalSpeed = (currentStage >= 3) ? MathUtils.random(-50, 50) + (currentStage - 2) * 10 : 0f;
         aliens.add(new Alien(alienRegion, x, y, speed, true, 0.2f, verticalSpeed));
+        if (DEBUG) Gdx.app.log(TAG, "Alien spawned at (" + x + ", " + y + ").");
     }
 
     private void spawnEnemyMissile() {
@@ -260,38 +285,37 @@ public class GameScreen extends ScreenAdapter {
         float y = MathUtils.random(0, WORLD_HEIGHT);
         float speedX = -300;
         float speedY = 0;
-        // Pour le missile ennemi, on utilise la région "missileEnemy" depuis l'atlas
-        TextureRegion enemyMissileRegion = spaceAtlas.findRegion("missileEnemy");
+        TextureRegion enemyMissileRegion = atlas.findRegion("Bullet (3)");
         enemyMissiles.add(new Missile(x, y, speedX, speedY, false, enemyMissileRegion));
+        if (DEBUG) Gdx.app.log(TAG, "Enemy missile spawned at (" + x + ", " + y + ").");
     }
 
     private void checkCollisions() {
-        // Collision entre cosmonaute et aliens
         for (Alien alien : aliens) {
             if (alien.collidesWith(cosmonaute)) {
+                if (DEBUG) Gdx.app.log(TAG, "Collision: Cosmonaute hit by alien.");
                 restart();
                 return;
             }
         }
-        // Collision entre cosmonaute et missiles ennemis
         for (Missile m : enemyMissiles) {
             if (m.getCollisionCircle().overlaps(cosmonaute.getCollisionCircle())) {
+                if (DEBUG) Gdx.app.log(TAG, "Collision: Cosmonaute hit by enemy missile.");
                 restart();
                 return;
             }
         }
-        // Collision entre missiles du joueur et aliens
         for (int i = aliens.size - 1; i >= 0; i--) {
             Alien alien = aliens.get(i);
             for (int j = playerMissiles.size - 1; j >= 0; j--) {
                 Missile m = playerMissiles.get(j);
-                // Création d'un cercle approximatif pour l'alien
                 float alienRadius = (alien.getRegion().getRegionWidth() * alien.getScale()) / 2f;
                 com.badlogic.gdx.math.Circle alienCircle = new com.badlogic.gdx.math.Circle(
                     alien.getX() + alienRadius,
                     alien.getY() + alien.getRegion().getRegionHeight() * alien.getScale() / 2,
                     alienRadius);
                 if (m.getCollisionCircle().overlaps(alienCircle)) {
+                    if (DEBUG) Gdx.app.log(TAG, "Alien hit by missile.");
                     aliens.removeIndex(i);
                     playerMissiles.removeIndex(j);
                     break;
@@ -309,6 +333,7 @@ public class GameScreen extends ScreenAdapter {
             currentStage++;
             scrollSpeedFactor += 0.2f;
             alienSpawnInterval = MathUtils.clamp(alienSpawnInterval - 0.5f, 5f, 10f);
+            if (DEBUG) Gdx.app.log(TAG, "Level up: " + stageMessage);
         }
         if (stageMessageTime > 0) {
             stageMessageTime -= delta;
@@ -317,25 +342,68 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void checkIfNewPlaneteIsNeeded() {
-        if (planetes.size == 0) createNewPlanete();
-        else {
+        if (planetes.size == 0) {
+            createNewPlanete();
+        } else {
             Planete p = planetes.peek();
-            if (p.getX() < WORLD_WIDTH - GAP_BETWEEN_PLANETES) createNewPlanete();
+            if (p.getX() < WORLD_WIDTH - GAP_BETWEEN_PLANETES) {
+                createNewPlanete();
+            }
         }
     }
 
     private void createNewPlanete() {
-        // Choisit aléatoirement entre planetRegion1 et planetRegion2
+        if (DEBUG) Gdx.app.log(TAG, "Starting planet creation...");
+
         TextureRegion chosen = MathUtils.randomBoolean() ? planetRegion1 : planetRegion2;
+
+        if (DEBUG) {
+            String chosenPlanet = (chosen == planetRegion1) ? "Planet (1)" : "Planet (4)";
+            Gdx.app.log(TAG, "Random planet selected -> " + chosenPlanet);
+        }
+
+        if (chosen == null) {
+            if (DEBUG) Gdx.app.error(TAG, "Failed to choose a valid planet texture region!");
+            return;
+        }
+
         Planete p = new Planete(chosen, energyRegion);
-        p.setPosition(WORLD_WIDTH + Planete.WIDTH);
+
+        if (energyRegion == null) {
+            if (DEBUG) Gdx.app.error(TAG, "Energy region is null! The obstacle might not display correctly.");
+        } else if (DEBUG) {
+            Gdx.app.log(TAG, "Energy region loaded correctly.");
+        }
+
+        float positionX = WORLD_WIDTH + Planete.WIDTH;
+        float positionY = MathUtils.random(0, WORLD_HEIGHT - chosen.getRegionHeight());
+        p.setPosition(positionX);
+
+        if (DEBUG) {
+            Gdx.app.log(TAG, "Setting planet position -> X: " + positionX + ", Y: " + positionY);
+        }
+
         planetes.add(p);
+
+        if (DEBUG) {
+            Gdx.app.log(TAG, "New planet successfully created and added to the list.");
+            Gdx.app.log(TAG, "Planet texture dimensions -> Width: " + chosen.getRegionWidth() + ", Height: " + chosen.getRegionHeight());
+            Gdx.app.log(TAG, "Total number of planets -> " + planetes.size);
+        }
+
+        if (planetes.size > 0 && DEBUG) {
+            Planete lastPlanet = planetes.peek();
+            Gdx.app.log(TAG, "Last added planet position -> X: " + lastPlanet.getX());
+        }
     }
 
     private void removePlanetesIfPassed() {
         if (planetes.size > 0) {
             Planete p = planetes.first();
-            if (p.getX() < -Planete.WIDTH) planetes.removeValue(p, true);
+            if (p.getX() < -Planete.WIDTH) {
+                planetes.removeValue(p, true);
+                if (DEBUG) Gdx.app.log(TAG, "Planet removed.");
+            }
         }
     }
 
@@ -345,6 +413,7 @@ public class GameScreen extends ScreenAdapter {
             if (p.getX() < cosmonaute.getX() && !p.isPointClaimed()) {
                 p.markPointClaimed();
                 score++;
+                if (DEBUG) Gdx.app.log(TAG, "Score updated: " + score);
             }
         }
     }
@@ -356,6 +425,7 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void restart() {
+        if (DEBUG) Gdx.app.log(TAG, "Restarting game.");
         cosmonaute.setPosition(WORLD_WIDTH / 4, WORLD_HEIGHT / 2);
         cosmonaute.setVelocity(0, 0);
         planetes.clear();
@@ -378,7 +448,9 @@ public class GameScreen extends ScreenAdapter {
         batch.setProjectionMatrix(camera.projection);
         batch.setTransformMatrix(camera.view);
         batch.begin();
+
         batch.draw(backgroundRegion, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
         for (Planete p : planetes) {
             p.draw(batch);
         }
@@ -391,15 +463,19 @@ public class GameScreen extends ScreenAdapter {
         for (Missile m : enemyMissiles) {
             m.draw(batch);
         }
+
         cosmonaute.draw(batch);
+
         glyphLayout.setText(bitmapFont, Integer.toString(score));
         bitmapFont.draw(batch, Integer.toString(score),
             (viewport.getWorldWidth() - glyphLayout.width) / 2,
             (4 * viewport.getWorldHeight() / 5) - glyphLayout.height / 2);
+
         if (stageMessageTime > 0) {
             glyphLayout.setText(bitmapFont, stageMessage);
             bitmapFont.draw(batch, stageMessage, (WORLD_WIDTH - glyphLayout.width) / 2, (WORLD_HEIGHT + glyphLayout.height) / 2);
         }
+
         batch.end();
     }
 
@@ -408,7 +484,8 @@ public class GameScreen extends ScreenAdapter {
         batch.dispose();
         bitmapFont.dispose();
         shapeRenderer.dispose();
-        spaceAtlas.dispose();
-        if (uiStage != null) uiStage.dispose();
+        atlas.dispose();
+        if (uiStage != null)
+            uiStage.dispose();
     }
 }

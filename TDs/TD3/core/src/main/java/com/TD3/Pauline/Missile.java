@@ -28,9 +28,14 @@ public class Missile {
     }
 
     public void draw(SpriteBatch batch) {
-        batch.draw(region, x - region.getRegionWidth()/2f, y - region.getRegionHeight()/2f);
+        batch.draw(region, x - region.getRegionWidth() / 2f, y - region.getRegionHeight() / 2f);
     }
 
-    public Circle getCollisionCircle() { return collisionCircle; }
-    public boolean isFromPlayer() { return fromPlayer; }
+    public Circle getCollisionCircle() {
+        return collisionCircle;
+    }
+
+    public boolean isFromPlayer() {
+        return fromPlayer;
+    }
 }

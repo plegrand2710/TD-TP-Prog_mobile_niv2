@@ -18,7 +18,7 @@ public class Planete {
 
     private float x = 0;
     private boolean pointClaimed = false;
-    private float rotation = 0f; // Rotation lente
+    private float rotation = 0f;
 
     private final Circle floorCircle;
     private final Rectangle floorRect;
@@ -26,7 +26,6 @@ public class Planete {
     private final Rectangle ceilingRect;
     private final float y;
 
-    // Utilisation de TextureRegion issues de l’atlas
     private final TextureRegion planetRegion;
     private final TextureRegion energyRegion;
 
@@ -54,31 +53,21 @@ public class Planete {
 
     public void setPosition(float x) {
         this.x = x;
-        updateCollisionCircles();
-        updateCollisionRectangles();
+        floorCircle.setX(x + floorRect.width / 2);
+        ceilingCircle.setX(x + ceilingRect.width / 2);
+        floorRect.setX(x);
+        ceilingRect.setX(x);
     }
 
     public float getX() { return x; }
     public boolean isPointClaimed() { return pointClaimed; }
     public void markPointClaimed() { pointClaimed = true; }
 
-    private void updateCollisionCircles() {
-        floorCircle.setX(x + floorRect.width / 2);
-        ceilingCircle.setX(x + ceilingRect.width / 2);
-    }
-
-    private void updateCollisionRectangles() {
-        floorRect.setX(x);
-        ceilingRect.setX(x);
-    }
-
     public void draw(SpriteBatch batch) {
-        // Dessine la planète avec rotation
         float drawX = floorCircle.x - planetRegion.getRegionWidth() / 2;
         float drawY = floorRect.y + COLLISION_CIRCLE_RADIUS;
         batch.draw(planetRegion, drawX, drawY, planetRegion.getRegionWidth()/2f, planetRegion.getRegionHeight()/2f,
             planetRegion.getRegionWidth(), planetRegion.getRegionHeight(), 1, 1, rotation);
-        // Dessine le champ d’énergie (sans rotation)
         float energyX = ceilingCircle.x - energyRegion.getRegionWidth() / 2;
         float energyY = ceilingRect.y - COLLISION_CIRCLE_RADIUS;
         batch.draw(energyRegion, energyX, energyY);
