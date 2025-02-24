@@ -55,8 +55,6 @@ public class GameScreen extends ScreenAdapter {
 
     private Stage uiStage;
     private Touchpad touchpad;
-    private ImageButton shootButton;
-
     private float levelTimer = 0f;
     private int currentStage = 1;
     private float stageMessageTime = 0f;
@@ -84,10 +82,6 @@ public class GameScreen extends ScreenAdapter {
         if (!useGyroscope && uiStage != null) {
             float touchpadSize = WORLD_WIDTH * 0.2f;
             touchpad.setBounds(WORLD_WIDTH - touchpadSize - 20, 20, touchpadSize, touchpadSize);
-
-            float buttonSize = WORLD_WIDTH * 0.1f;
-            shootButton.setSize(buttonSize, buttonSize);
-            shootButton.setPosition(20, 20);
         }
         viewport.update(width, height, true);
         if (DEBUG) Gdx.app.log(TAG, "GameScreen resize() called: width=" + width + ", height=" + height);
@@ -108,7 +102,7 @@ public class GameScreen extends ScreenAdapter {
         atlas = new TextureAtlas(Gdx.files.internal("space_warrior.atlas"));
         if (DEBUG) Gdx.app.log(TAG, "Atlas loaded from space_warrior.atlas");
 
-        backgroundRegion = atlas.findRegion("Game Background");
+        backgroundRegion = atlas.findRegion("Background-layer");
         if (backgroundRegion == null && DEBUG) Gdx.app.log(TAG, "Failed to load background region!");
 
         planetRegion1 = atlas.findRegion("Planet (1)");
@@ -123,7 +117,7 @@ public class GameScreen extends ScreenAdapter {
         alienRegion = atlas.findRegion("Alien Fly (6)");
         if (alienRegion == null && DEBUG) Gdx.app.log(TAG, "Failed to load alienRegion!");
 
-        shootButtonRegion = atlas.findRegion("Blank Button-2");
+        shootButtonRegion = atlas.findRegion("Blank Button");
         if (shootButtonRegion == null && DEBUG) Gdx.app.log(TAG, "Failed to load shootButtonRegion!");
 
         cosmonaute = new Cosmonaute(atlas);
@@ -145,7 +139,6 @@ public class GameScreen extends ScreenAdapter {
         }
         if (!useGyroscope) {
             setupTouchpad();
-            setupShootButton();
         }
         createNewPlanete();
     }
@@ -153,9 +146,8 @@ public class GameScreen extends ScreenAdapter {
     private void setupTouchpad() {
         uiStage = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
         skin = new Skin(Gdx.files.internal("uiskin.json"));
-        Touchpad.TouchpadStyle style = new Touchpad.TouchpadStyle();
-        style.background = skin.getDrawable("touchpadBackground");
-        style.knob = skin.getDrawable("touchpadKnob");
+        Touchpad.TouchpadStyle style = skin.get(Touchpad.TouchpadStyle.class);
+
         touchpad = new Touchpad(10, style);
         touchpad.setBounds(WORLD_WIDTH - 215, 15, 200, 200);
         uiStage.addActor(touchpad);
@@ -163,22 +155,8 @@ public class GameScreen extends ScreenAdapter {
         InputMultiplexer multiplexer = new InputMultiplexer();
         multiplexer.addProcessor(uiStage);
         Gdx.input.setInputProcessor(multiplexer);
-        if (DEBUG) Gdx.app.log(TAG, "Touchpad initialized.");
-    }
 
-    private void setupShootButton() {
-        shootButton = new ImageButton(new TextureRegionDrawable(shootButtonRegion));
-        shootButton.setPosition(20, 20);
-        shootButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
-            @Override
-            public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
-                Missile missile = cosmonaute.tirer();
-                playerMissiles.add(missile);
-                if (DEBUG) Gdx.app.log(TAG, "Shoot button tapped, missile fired.");
-            }
-        });
-        uiStage.addActor(shootButton);
-        if (DEBUG) Gdx.app.log(TAG, "Shoot button initialized.");
+        if (DEBUG) Gdx.app.log(TAG, "Touchpad initialized with uiskin.json.");
     }
 
     @Override
@@ -194,10 +172,13 @@ public class GameScreen extends ScreenAdapter {
 
     private void update(float delta) {
         if (Gdx.input.justTouched()) {
-            Missile missile = cosmonaute.tirer();
-            playerMissiles.add(missile);
-            if (DEBUG) Gdx.app.log(TAG, "Screen touched, missile fired.");
+            if (!isTouchpadTouched()) {
+                Missile missile = cosmonaute.tirer();
+                playerMissiles.add(missile);
+                if (DEBUG) Gdx.app.log(TAG, "Screen touched, missile fired.");
+            }
         }
+
         updateCosmonaute(delta);
         updatePlanetes(delta);
         updateScore();
@@ -206,6 +187,17 @@ public class GameScreen extends ScreenAdapter {
         checkCollisions();
         updateLevel(delta);
     }
+
+    private boolean isTouchpadTouched() {
+        if (touchpad != null) {
+            float touchX = Gdx.input.getX();
+            float touchY = Gdx.graphics.getHeight() - Gdx.input.getY();
+            return touchpad.getX() <= touchX && touchX <= touchpad.getX() + touchpad.getWidth()
+                && touchpad.getY() <= touchY && touchY <= touchpad.getY() + touchpad.getHeight();
+        }
+        return false;
+    }
+
 
     private void updateCosmonaute(float delta) {
         if (useGyroscope) {
