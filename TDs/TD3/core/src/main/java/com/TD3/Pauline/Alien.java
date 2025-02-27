@@ -1,7 +1,9 @@
 package com.TD3.Pauline;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 
 public class Alien {
@@ -41,12 +43,22 @@ public class Alien {
     }
 
     public boolean collidesWith(Cosmonaute cosmo) {
-        float alienRadius = (region.getRegionWidth() * scale) / 2f;
-        float dx = (x + alienRadius) - cosmo.getX();
-        float dy = (y + alienRadius) - cosmo.getY();
-        float distance = (float)Math.sqrt(dx * dx + dy * dy);
+        float alienWidth = region.getRegionWidth() * scale;
+        float alienHeight = region.getRegionHeight() * scale;
+
+        float centerX = x + alienWidth / 2;
+        float centerY = y + alienHeight / 2;
+
+        float alienRadius = Math.min(alienWidth, alienHeight) / 3f;
+
+        float dx = centerX - cosmo.getX();
+        float dy = centerY - cosmo.getY();
+        float distance = (float) Math.sqrt(dx * dx + dy * dy);
+
         return distance < (alienRadius + cosmo.getCollisionCircle().radius);
     }
+
+
 
     public float getX() { return x; }
     public float getY() {
@@ -54,4 +66,19 @@ public class Alien {
     }
     public TextureRegion getRegion() { return region; }
     public float getScale() { return scale; }
+
+    public void drawDebug(ShapeRenderer shapeRenderer) {
+        shapeRenderer.setColor(Color.RED);
+
+        float alienWidth = region.getRegionWidth() * scale;
+        float alienHeight = region.getRegionHeight() * scale;
+
+        float centerX = x + alienWidth / 2;
+        float centerY = y + alienHeight / 2;
+
+        float alienRadius = Math.min(alienWidth, alienHeight) / 3f;
+
+        shapeRenderer.circle(centerX, centerY, alienRadius);
+    }
+
 }

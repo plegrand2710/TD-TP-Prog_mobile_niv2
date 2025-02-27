@@ -131,7 +131,7 @@ public class StartScreen extends ScreenAdapter {
             @Override
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
                 if (DEBUG) Gdx.app.log(TAG, "Exit button tapped.");
-                Gdx.app.exit();  
+                Gdx.app.exit();
             }
         });
 

@@ -9,7 +9,7 @@ public class Missile {
     private final boolean fromPlayer;
     private final TextureRegion region;
     private final Circle collisionCircle;
-    private static final float RADIUS = 10f;
+    private static final float RADIUS = 20f;
 
     public Missile(float x, float y, float speedX, float speedY, boolean fromPlayer, TextureRegion region) {
         this.x = x;
