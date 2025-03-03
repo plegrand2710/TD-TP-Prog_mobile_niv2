@@ -20,12 +20,19 @@ public class Roquet {
     private static final float COLLISION_WIDTH = 100f;
     private static final float COLLISION_LENGTH = 500f;
 
-    public Roquet(float x, float y, float speedX, float speedY, Animation<TextureRegion> animation) {
+    private Animation<TextureRegion> explosionAnimation;
+    private boolean isExploding = false;
+    private float explosionTimer = 0f;
+    private static final float EXPLOSION_DURATION = 0.5f;
+
+
+    public Roquet(float x, float y, float speedX, float speedY, Animation<TextureRegion> animation, Animation<TextureRegion> explosionAnimation) {
         this.x = x;
         this.y = y;
         this.speedX = speedX;
         this.speedY = speedY;
         this.animation = animation;
+        this.explosionAnimation = explosionAnimation;
         this.scaleFactor = 0.2f;
 
         this.collisionRect = new Rectangle(
@@ -38,6 +45,11 @@ public class Roquet {
 
 
     public void update(float delta) {
+        if (isExploding) {
+            explosionTimer += delta;
+            return;
+        }
+
         x += speedX * delta;
         y += speedY * delta;
         animationTimer += delta;
@@ -47,8 +59,22 @@ public class Roquet {
         );
     }
 
+    public void explode() {
+        if (!isExploding) {
+            isExploding = true;
+            explosionTimer = 0f;
+            speedX = 0;
+            speedY = 0;
+        }
+    }
+
+    public boolean isExploding() {
+        return isExploding;
+    }
 
     public void draw(SpriteBatch batch) {
+        if (isExploding) return;
+
         TextureRegion currentFrame = animation.getKeyFrame(animationTimer);
         float width = currentFrame.getRegionWidth() * scaleFactor;
         float height = currentFrame.getRegionHeight() * scaleFactor;
@@ -57,14 +83,34 @@ public class Roquet {
 
     public void drawDebug(ShapeRenderer sr) {
         sr.setColor(Color.PINK);
-        Gdx.gl20.glLineWidth(5f);
-        sr.rect(collisionRect.x, collisionRect.y, collisionRect.width, collisionRect.height);
-        Gdx.gl20.glLineWidth(1f);
+
+        if (!isExploding) {
+            sr.rect(collisionRect.x, collisionRect.y, collisionRect.width, collisionRect.height);
+        } else {
+            float explosionRadius = collisionRect.width * 0.5f;
+            sr.setColor(Color.ORANGE);
+            sr.circle(x, y, explosionRadius);
+        }
     }
 
+    public boolean isFinishedExploding() {
+        return isExploding && explosionAnimation.isAnimationFinished(explosionTimer);
+    }
+
+    public void drawExplosion(SpriteBatch batch) {
+        if (!isExploding) return;
+
+        TextureRegion explosionFrame = explosionAnimation.getKeyFrame(explosionTimer);
+        float explosionSize = COLLISION_WIDTH * 1.5f;
+        batch.draw(explosionFrame, x - explosionSize / 2, y - explosionSize / 2, explosionSize, explosionSize);
+    }
 
     public boolean collidesWith(Missile missile) {
-        return Intersector.overlaps(missile.getCollisionCircle(), this.getCollisionRect());
+        boolean collision = Intersector.overlaps(missile.getCollisionCircle(), this.getCollisionRect());
+        if (collision) {
+            explode();
+        }
+        return collision;
     }
 
 

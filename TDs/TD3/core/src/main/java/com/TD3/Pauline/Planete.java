@@ -3,6 +3,7 @@ package com.TD3.Pauline;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Circle;
@@ -16,6 +17,8 @@ public class Planete {
     private float x = 0;
     private boolean pointClaimed = false;
     private float rotation = 0f;
+    private final String name;  // Ajout du nom de la planète
+
 
     private final Circle collisionCircle;
     private final Rectangle collisionRect;
@@ -28,6 +31,11 @@ public class Planete {
         this.planetRegion = planetRegion;
         this.energyRegion = energyRegion;
 
+        if (planetRegion instanceof TextureAtlas.AtlasRegion) {
+            this.name = ((TextureAtlas.AtlasRegion) planetRegion).name;
+        } else {
+            this.name = "Unknown Planet"; // Nom par défaut si pas dans un atlas
+        }
         float radius = (planetRegion.getRegionWidth() / 2f) * scaleFactor;
         collisionCircle = new Circle(0, 0, radius);
 

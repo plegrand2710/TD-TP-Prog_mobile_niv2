@@ -49,8 +49,7 @@ public class GameScreen extends ScreenAdapter {
 
     private TextureAtlas atlas;
     private TextureRegion backgroundRegion;
-    private TextureRegion planetRegion1;
-    private TextureRegion planetRegion2;
+    private Array<TextureRegion> planetRegions;
     private TextureRegion energyRegion;
     private TextureRegion alienRegion;
     private TextureRegion shootButtonRegion;
@@ -84,6 +83,10 @@ public class GameScreen extends ScreenAdapter {
     private float deathTimer = 0f;
     private static final float DEATH_ANIMATION_DURATION = 1.5f;
 
+    private Animation<TextureRegion> alienDeathAnimation;
+    private Animation<TextureRegion> alienFlyAnimation;
+
+    private Animation<TextureRegion> explosionAnimation;
 
     public GameScreen(boolean useGyroscope) {
         this.useGyroscope = useGyroscope;
@@ -120,17 +123,35 @@ public class GameScreen extends ScreenAdapter {
         backgroundRegion = atlas.findRegion("Background-layer");
         if (backgroundRegion == null && DEBUG) Gdx.app.log(TAG, "Failed to load background region!");
 
-        planetRegion1 = atlas.findRegion("Planet (1)");
-        if (planetRegion1 == null && DEBUG) Gdx.app.log(TAG, "Failed to load planetRegion1!");
+        planetRegions = new Array<>();
 
-        planetRegion2 = atlas.findRegion("Planet (4)");
-        if (planetRegion2 == null && DEBUG) Gdx.app.log(TAG, "Failed to load planetRegion2!");
+        for (TextureAtlas.AtlasRegion region : atlas.getRegions()) {
+            if (region.name.startsWith("Planet (")) {
+                planetRegions.add(region);
+                if (DEBUG) Gdx.app.log(TAG, "Loaded planet: " + region.name);
+            }
+        }
+
+        if (planetRegions.size == 0) {
+            Gdx.app.error(TAG, "No planet textures found!");
+        }
 
         energyRegion = atlas.findRegion("Electric Obstacles (1)");
         if (energyRegion == null && DEBUG) Gdx.app.log(TAG, "Failed to load energyRegion!");
 
-        alienRegion = atlas.findRegion("Alien Fly (6)");
-        if (alienRegion == null && DEBUG) Gdx.app.log(TAG, "Failed to load alienRegion!");
+        Array<TextureRegion> alienFlyFrames = new Array<>();
+        for (TextureAtlas.AtlasRegion region : atlas.getRegions()) {
+            if (region.name.startsWith("Alien Fly")) {
+                alienFlyFrames.add(region);
+            }
+        }
+
+        if (alienFlyFrames.size > 0) {
+            alienFlyAnimation = new Animation<>(0.1f, alienFlyFrames, Animation.PlayMode.LOOP);
+        } else {
+            Gdx.app.error("GameScreen", "No alien fly animation frames found!");
+        }
+
 
         shootButtonRegion = atlas.findRegion("Blank Button");
         if (shootButtonRegion == null && DEBUG) Gdx.app.log(TAG, "Failed to load shootButtonRegion!");
@@ -151,6 +172,35 @@ public class GameScreen extends ScreenAdapter {
             Gdx.app.log(TAG, "Failed to load Game Over GUI!");
         }
 
+        Array<TextureRegion> explosionFrames = new Array<>();
+        for (TextureAtlas.AtlasRegion region : atlas.getRegions()) {
+            if (region.name.startsWith("Rocket Explode")) {
+                explosionFrames.add(region);
+            }
+        }
+
+        Array<TextureRegion> alienDeathFrames = new Array<>();
+        for (TextureAtlas.AtlasRegion region : atlas.getRegions()) {
+            if (region.name.startsWith("Alien Die")) { // Vérifie le bon préfixe dans ton atlas
+                alienDeathFrames.add(region);
+            }
+        }
+
+        if (alienDeathFrames.size > 0) {
+            alienDeathAnimation = new Animation<>(0.1f, alienDeathFrames, Animation.PlayMode.NORMAL);
+            Gdx.app.log(TAG, "Alien death animation loaded with " + alienDeathFrames.size + " frames.");
+        } else {
+            Gdx.app.error(TAG, "No alien death animation frames found in the atlas!");
+        }
+
+
+        if (explosionFrames.size > 0) {
+            explosionAnimation = new Animation<>(0.1f, explosionFrames, Animation.PlayMode.NORMAL);
+            Gdx.app.log(TAG, "Explosion animation loaded with " + explosionFrames.size + " frames.");
+        } else {
+            Gdx.app.error(TAG, "No explosion animation frames found in the atlas!");
+        }
+
         cosmonaute = new Cosmonaute(atlas, this);
         cosmonaute.setPosition(WORLD_WIDTH / 4, WORLD_HEIGHT / 2);
         if (DEBUG) {
@@ -160,9 +210,6 @@ public class GameScreen extends ScreenAdapter {
         if (DEBUG) {
             if (backgroundRegion != null) {
                 Gdx.app.log(TAG, "Background dimensions -> Width: " + backgroundRegion.getRegionWidth() + ", Height: " + backgroundRegion.getRegionHeight());
-            }
-            if (planetRegion1 != null) {
-                Gdx.app.log(TAG, "Planet (1) dimensions -> Width: " + planetRegion1.getRegionWidth() + ", Height: " + planetRegion1.getRegionHeight());
             }
             if (alienRegion != null) {
                 Gdx.app.log(TAG, "Alien Fly (6) dimensions -> Width: " + alienRegion.getRegionWidth() + ", Height: " + alienRegion.getRegionHeight());
@@ -296,10 +343,32 @@ public class GameScreen extends ScreenAdapter {
             alien.update(delta);
         }
         for (int i = aliens.size - 1; i >= 0; i--) {
-            Alien a = aliens.get(i);
-            float effectiveWidth = a.getRegion().getRegionWidth() * a.getScale();
-            if (a.getX() < -effectiveWidth || a.getX() > WORLD_WIDTH) {
+            if (aliens.get(i).isFinishedExploding()) {  // ✅ Vérifie bien que l'alien a fini d'exploser
                 aliens.removeIndex(i);
+                if (DEBUG) Gdx.app.log(TAG, "Alien removed after death animation.");
+            }
+        }
+
+
+        for (int i = aliens.size - 1; i >= 0; i--) {
+            Alien alien = aliens.get(i);
+            for (int j = playerMissiles.size - 1; j >= 0; j--) {
+                Missile m = playerMissiles.get(j);
+                TextureRegion currentFrame = alien.getCurrentRegion();
+                float alienRadius = (currentFrame.getRegionWidth() * alien.getScale()) / 2f;
+
+                com.badlogic.gdx.math.Circle alienCircle = new com.badlogic.gdx.math.Circle(
+                    alien.getX() + alienRadius,
+                    alien.getY() + (currentFrame.getRegionHeight() * alien.getScale()) / 2f,
+                    alienRadius
+                );
+
+                if (m.getCollisionCircle().overlaps(alienCircle)) {
+                    if (DEBUG) Gdx.app.log(TAG, "Alien hit by missile.");
+                    alien.die();  // On active l'animation de mort
+                    playerMissiles.removeIndex(j);
+                    break;
+                }
             }
         }
     }
@@ -332,20 +401,40 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void spawnAlien() {
+        Gdx.app.log(TAG, "spawnAlien() called");
+        if (alienFlyAnimation == null) Gdx.app.error(TAG, "alienFlyAnimation is NULL");
+        if (alienDeathAnimation == null) Gdx.app.error(TAG, "alienDeathAnimation is NULL");
+
         float x = WORLD_WIDTH;
-        float y = MathUtils.random(0, WORLD_HEIGHT - alienRegion.getRegionHeight() * 0.5f);
+
+        if (alienRegion == null) {
+            Gdx.app.error(TAG, "alienRegion is NULL! Using default height.");
+        } else {
+            Gdx.app.log(TAG, "alienRegion dimensions -> Width: " + alienRegion.getRegionWidth() + ", Height: " + alienRegion.getRegionHeight());
+        }
+
+        float y = MathUtils.random(0, WORLD_HEIGHT - (alienRegion != null ? alienRegion.getRegionHeight() * 0.5f : 50)); // Utilise 50 par défaut si null
+
         float speed = 100 + (currentStage - 1) * 20;
+
         float verticalSpeed = (currentStage >= 3) ? MathUtils.random(-50, 50) + (currentStage - 2) * 10 : 0f;
-        aliens.add(new Alien(alienRegion, x, y, speed, true, 0.2f, verticalSpeed));
+
+        if (alienFlyAnimation == null || alienDeathAnimation == null) {
+            Gdx.app.error(TAG, "Alien animations are null! Skipping spawn.");
+            return;
+        }
+        aliens.add(new Alien(alienFlyAnimation, x, y, speed, true, 0.2f, verticalSpeed, alienDeathAnimation));
+
         if (DEBUG) Gdx.app.log(TAG, "Alien spawned at (" + x + ", " + y + ").");
     }
+
 
     private void spawnEnemyRocket() {
         float x = WORLD_WIDTH;
         float y = MathUtils.random(0, WORLD_HEIGHT);
         float speedX = -300;
         float speedY = MathUtils.random(-50, 50);
-        Roquet rocket = new Roquet(x, y, speedX, speedY, enemyRocketAnimation);
+        Roquet rocket = new Roquet(x, y, speedX, speedY, enemyRocketAnimation, explosionAnimation);
         enemyRockets.add(rocket);
         if (DEBUG) Gdx.app.log(TAG, "Enemy rocket spawned at (" + x + ", " + y + ").");
     }
@@ -368,43 +457,56 @@ public class GameScreen extends ScreenAdapter {
             }
         }
 
-        for (int i = enemyRockets.size - 1; i >= 0; i--) {
-            Roquet rocket = enemyRockets.get(i);
+        for (int i = aliens.size - 1; i >= 0; i--) {
+            Alien alien = aliens.get(i);
             for (int j = playerMissiles.size - 1; j >= 0; j--) {
-                Missile missile = playerMissiles.get(j);
-                if (rocket.collidesWith(missile)) {
-                    enemyRockets.removeIndex(i);
+                Missile m = playerMissiles.get(j);
+                TextureRegion currentFrame = alien.getCurrentRegion();
+                if (currentFrame == null) return; // Évite une erreur si l'animation est mal initialisée
+
+                float alienWidth = currentFrame.getRegionWidth() * alien.getScale();
+                float alienHeight = currentFrame.getRegionHeight() * alien.getScale();
+
+                com.badlogic.gdx.math.Circle alienCircle = new com.badlogic.gdx.math.Circle(
+                    alien.getX() + (alienWidth / 2f),
+                    alien.getY() + (alienHeight / 2f),
+                    Math.min(alienWidth, alienHeight) / 3f // Rayon du cercle de collision
+                );
+
+                if (m.getCollisionCircle().overlaps(alienCircle)) {
+                    if (DEBUG) Gdx.app.log(TAG, "Alien hit by missile.");
+                    alien.die();  // On active l'animation de mort au lieu de le supprimer immédiatement
                     playerMissiles.removeIndex(j);
-                    if (DEBUG) Gdx.app.log(TAG, "Rocket destroyed by missile!");
                     break;
                 }
             }
         }
 
-        for (int i = aliens.size - 1; i >= 0; i--) {
-            Alien alien = aliens.get(i);
-            for (int j = playerMissiles.size - 1; j >= 0; j--) {
-                Missile m = playerMissiles.get(j);
-                float alienRadius = (alien.getRegion().getRegionWidth() * alien.getScale()) / 2f;
-                com.badlogic.gdx.math.Circle alienCircle = new com.badlogic.gdx.math.Circle(
-                    alien.getX() + alienRadius,
-                    alien.getY() + alien.getRegion().getRegionHeight() * alien.getScale() / 2,
-                    alienRadius
-                );
-                if (m.getCollisionCircle().overlaps(alienCircle)) {
-                    if (DEBUG) Gdx.app.log(TAG, "Alien hit by missile.");
-                    aliens.removeIndex(i);
-                    playerMissiles.removeIndex(j);
-                    break;
-                }
-            }
-        }
 
         for (Planete p : planetes) {
             if (p.isCosmonauteColliding(cosmonaute)) {
                 if (DEBUG) Gdx.app.log(TAG, "Collision: Cosmonaute hit by planet or electric obstacle.");
                 triggerDeath();
                 return;
+            }
+        }
+
+        for (int i = enemyRockets.size - 1; i >= 0; i--) {
+            Roquet rocket = enemyRockets.get(i);
+            for (int j = playerMissiles.size - 1; j >= 0; j--) {
+                Missile missile = playerMissiles.get(j);
+                if (rocket.collidesWith(missile)) {
+                    rocket.explode();
+                    playerMissiles.removeIndex(j);
+                    if (DEBUG) Gdx.app.log(TAG, "Rocket hit! Explosion triggered.");
+                    break;
+                }
+            }
+        }
+
+        for (int i = enemyRockets.size - 1; i >= 0; i--) {
+            if (enemyRockets.get(i).isFinishedExploding()) {
+                enemyRockets.removeIndex(i);
             }
         }
     }
@@ -440,19 +542,11 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void createNewPlanete() {
-        if (DEBUG) Gdx.app.log(TAG, "Starting planet creation...");
+        if (planetRegions.size == 0) return;
 
-        TextureRegion chosen = MathUtils.randomBoolean() ? planetRegion1 : planetRegion2;
+        TextureRegion chosen = planetRegions.random();
 
-        if (DEBUG) {
-            String chosenPlanet = (chosen == planetRegion1) ? "Planet (1)" : "Planet (4)";
-            Gdx.app.log(TAG, "Random planet selected -> " + chosenPlanet);
-        }
-
-        if (chosen == null) {
-            if (DEBUG) Gdx.app.error(TAG, "Failed to choose a valid planet texture region!");
-            return;
-        }
+        if (DEBUG) Gdx.app.log(TAG, "Random planet selected");
 
         Planete p = new Planete(chosen, null);
         float scaleFactor = MathUtils.random(0.3f, 0.6f);
@@ -464,24 +558,7 @@ public class GameScreen extends ScreenAdapter {
 
         p.randomizePositionAndSize(WORLD_WIDTH, WORLD_HEIGHT);
 
-
-        if (DEBUG) {
-            Gdx.app.log(TAG, "Setting planet position -> X: " + positionX + ", Y: " + positionY);
-            Gdx.app.log(TAG, "Planet scaled -> Scale Factor: " + scaleFactor);
-        }
-
         planetes.add(p);
-
-        if (DEBUG) {
-            Gdx.app.log(TAG, "New planet successfully created and added to the list.");
-            Gdx.app.log(TAG, "Planet texture dimensions -> Width: " + chosen.getRegionWidth() + ", Height: " + chosen.getRegionHeight());
-            Gdx.app.log(TAG, "Total number of planets -> " + planetes.size);
-        }
-
-        if (planetes.size > 0 && DEBUG) {
-            Planete lastPlanet = planetes.peek();
-            Gdx.app.log(TAG, "Last added planet position -> X: " + lastPlanet.getX());
-        }
     }
 
 
@@ -560,8 +637,19 @@ public class GameScreen extends ScreenAdapter {
         for (Missile m : playerMissiles) {
             m.draw(batch);
         }
-        for (Roquet rocket : enemyRockets) {
-            rocket.draw(batch);
+        for (int i = enemyRockets.size - 1; i >= 0; i--) {
+            Roquet rocket = enemyRockets.get(i);
+
+            if (rocket.isExploding()) {
+                rocket.drawExplosion(batch);
+            } else {
+                rocket.draw(batch);
+            }
+
+            // Si l'explosion est terminée, on supprime le roquet
+            if (rocket.isFinishedExploding()) {
+                enemyRockets.removeIndex(i);
+            }
         }
 
         cosmonaute.draw(batch);
