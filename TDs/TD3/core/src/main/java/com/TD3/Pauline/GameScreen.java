@@ -344,9 +344,11 @@ public class GameScreen extends ScreenAdapter {
     }
 
 
+
     public void setGameOver() {
         if (DEBUG) Gdx.app.log(TAG, "Game Over triggered. Transitioning to GameOverScreen.");
-        startScreen.setScreen(new GameOverScreen(startScreen, atlas, score, useGyroscope));
+
+        startScreen.setScreen(new GameOverScreen( startScreen, atlas, score, useGyroscope));
     }
 
 
@@ -724,6 +726,9 @@ public class GameScreen extends ScreenAdapter {
         atlas.dispose();
         if (uiStage != null)
             uiStage.dispose();
+
+        Gdx.app.log(TAG, "🗑️ GameScreen.dispose() appelé !");
+
     }
 
     private void triggerDeath() {

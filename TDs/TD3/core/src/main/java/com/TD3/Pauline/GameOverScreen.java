@@ -1,5 +1,6 @@
 package com.TD3.Pauline;
 
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
@@ -34,7 +35,7 @@ public class GameOverScreen extends ScreenAdapter {
     private final OrthographicCamera camera;
     private final Viewport viewport;
     private final int finalScore;
-    private final boolean useGyroscope;
+    private boolean useGyroscope;
     private Stage stage;
     private ImageButton menuButton;
     private ShapeRenderer shapeRenderer;
@@ -130,15 +131,17 @@ public class GameOverScreen extends ScreenAdapter {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 Gdx.app.log(TAG, "Changement d'image du bouton...");
-                
+
                 menuButton.setStyle(newStyle);
                 menuButton.invalidate();
                 stage.act();
+                useGyroscope = false;
 
-                new Thread(() -> {
-                    StartScreen newScreen = new StartScreen(startScreen.getGame());
-                    Gdx.app.postRunnable(() -> startScreen.getGame().setScreen(newScreen));
-                }).start();
+                Game game = startScreen.getGame();
+                StartScreen newScreen = new StartScreen(startScreen);
+
+                Gdx.app.postRunnable(() -> game.setScreen(newScreen));
+                Gdx.app.log(TAG, "✅ Retour à StartScreen !");
 
             }
         });
