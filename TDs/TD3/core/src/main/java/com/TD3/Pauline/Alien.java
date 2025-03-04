@@ -72,7 +72,7 @@ public class Alien {
     public void update(float delta) {
         if (isDying) {
             deathTimer += delta;
-            return; // Stop movement if dying
+            return; 
         }
 
         animationTimer += delta;

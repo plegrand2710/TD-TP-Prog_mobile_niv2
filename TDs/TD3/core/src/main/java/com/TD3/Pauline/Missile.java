@@ -9,7 +9,8 @@ public class Missile {
     private final boolean fromPlayer;
     private final TextureRegion region;
     private final Circle collisionCircle;
-    private static final float RADIUS = 20f;
+    private static final float RADIUS = 10f;
+    private static final float SCALE_FACTOR = 0.5f;
 
     public Missile(float x, float y, float speedX, float speedY, boolean fromPlayer, TextureRegion region) {
         this.x = x;
@@ -28,7 +29,9 @@ public class Missile {
     }
 
     public void draw(SpriteBatch batch) {
-        batch.draw(region, x - region.getRegionWidth() / 2f, y - region.getRegionHeight() / 2f);
+        float width = region.getRegionWidth() * SCALE_FACTOR;
+        float height = region.getRegionHeight() * SCALE_FACTOR;
+        batch.draw(region, x - width / 2f, y - height / 2f, width, height);
     }
 
     public Circle getCollisionCircle() {

@@ -34,15 +34,14 @@ public class StartScreen extends ScreenAdapter {
     private TextureRegion blankButtonRegion;
 
     private BitmapFont font;
-    private final Game game;
+    private final StartScreen startScreen;
 
     private static final float GYRO_BUTTON_SCALE = 1.5f;
     private static final float TOUCHPAD_BUTTON_SCALE = 1.5f;
     private static final float EXIT_BUTTON_SCALE = 1.2f;
 
-
     public StartScreen(Game game) {
-        this.game = game;
+        this.startScreen = this;
         WORLD_WIDTH = Gdx.graphics.getWidth();
         WORLD_HEIGHT = Gdx.graphics.getHeight();
     }
@@ -113,7 +112,7 @@ public class StartScreen extends ScreenAdapter {
             @Override
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
                 if (DEBUG) Gdx.app.log(TAG, "Gyroscope button tapped.");
-                game.setScreen(new GameScreen(true));
+                startScreen.setScreen(new GameScreen(startScreen, true));
                 dispose();
             }
         });
@@ -122,7 +121,7 @@ public class StartScreen extends ScreenAdapter {
             @Override
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
                 if (DEBUG) Gdx.app.log(TAG, "TouchPad button tapped.");
-                game.setScreen(new GameScreen(false));
+                startScreen.setScreen(new GameScreen(startScreen, false));
                 dispose();
             }
         });
@@ -134,8 +133,6 @@ public class StartScreen extends ScreenAdapter {
                 Gdx.app.exit();
             }
         });
-
-
     }
 
     private TextButton createTextButton(String text, TextButtonStyle style, float scaleFactor) {
@@ -147,7 +144,6 @@ public class StartScreen extends ScreenAdapter {
         return button;
     }
 
-
     private ImageButton createImageButton(TextureRegion region, float scaleFactor) {
         float buttonWidth = (region.getRegionWidth() / 3f) * scaleFactor;
         float buttonHeight = (region.getRegionHeight() / 3f) * scaleFactor;
@@ -156,7 +152,6 @@ public class StartScreen extends ScreenAdapter {
         button.setSize(buttonWidth, buttonHeight);
         return button;
     }
-
 
     @Override
     public void render(float delta) {
@@ -172,6 +167,10 @@ public class StartScreen extends ScreenAdapter {
         WORLD_HEIGHT = height;
         stage.getViewport().update(width, height, true);
         if (DEBUG) Gdx.app.log(TAG, "StartScreen resize() called: width=" + width + ", height=" + height);
+    }
+
+    public void setScreen(ScreenAdapter screen) {
+        ((Game) Gdx.app.getApplicationListener()).setScreen(screen);
     }
 
     @Override

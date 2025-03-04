@@ -17,7 +17,7 @@ public class Planete {
     private float x = 0;
     private boolean pointClaimed = false;
     private float rotation = 0f;
-    private final String name;  // Ajout du nom de la planète
+    private final String name;
 
 
     private final Circle collisionCircle;
@@ -34,7 +34,7 @@ public class Planete {
         if (planetRegion instanceof TextureAtlas.AtlasRegion) {
             this.name = ((TextureAtlas.AtlasRegion) planetRegion).name;
         } else {
-            this.name = "Unknown Planet"; // Nom par défaut si pas dans un atlas
+            this.name = "Unknown Planet";
         }
         float radius = (planetRegion.getRegionWidth() / 2f) * scaleFactor;
         collisionCircle = new Circle(0, 0, radius);

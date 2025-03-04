@@ -6,6 +6,7 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -43,6 +44,9 @@ public class GameScreen extends ScreenAdapter {
     private GlyphLayout glyphLayout;
     private SpriteBatch batch;
 
+    private final StartScreen startScreen;
+
+
     private Cosmonaute cosmonaute;
     private Array<Planete> planetes = new Array<Planete>();
     private int score = 0;
@@ -54,6 +58,14 @@ public class GameScreen extends ScreenAdapter {
     private TextureRegion alienRegion;
     private TextureRegion shootButtonRegion;
     private TextureRegion gameOverRegion;
+
+    private final Array<ElectricField> electricFields = new Array<>();
+    private float electricFieldSpawnTimer = 0f;
+    private float electricFieldSpawnInterval = 8f;
+    private Animation<TextureRegion> electricFieldAnimation;
+
+    private boolean isDying = false;
+
 
     private Skin skin;
 
@@ -78,8 +90,6 @@ public class GameScreen extends ScreenAdapter {
     private final Array<Roquet> enemyRockets = new Array<>();
     private Animation<TextureRegion> enemyRocketAnimation;
 
-    private boolean isGameOver = false;
-    private boolean isDying = false;
     private float deathTimer = 0f;
     private static final float DEATH_ANIMATION_DURATION = 1.5f;
 
@@ -88,7 +98,9 @@ public class GameScreen extends ScreenAdapter {
 
     private Animation<TextureRegion> explosionAnimation;
 
-    public GameScreen(boolean useGyroscope) {
+    public GameScreen(StartScreen startScreen, boolean useGyroscope) {
+        this.startScreen = startScreen;
+
         this.useGyroscope = useGyroscope;
         WORLD_WIDTH = Gdx.graphics.getWidth();
         WORLD_HEIGHT = Gdx.graphics.getHeight();
@@ -99,7 +111,7 @@ public class GameScreen extends ScreenAdapter {
     public void resize(int width, int height) {
         if (!useGyroscope && uiStage != null) {
             float touchpadSize = WORLD_WIDTH * 0.2f;
-            touchpad.setBounds(WORLD_WIDTH - touchpadSize - 20, 20, touchpadSize, touchpadSize);
+            touchpad.setBounds(15, 15, 200, 200);
         }
         viewport.update(width, height, true);
         if (DEBUG) Gdx.app.log(TAG, "GameScreen resize() called: width=" + width + ", height=" + height);
@@ -181,7 +193,7 @@ public class GameScreen extends ScreenAdapter {
 
         Array<TextureRegion> alienDeathFrames = new Array<>();
         for (TextureAtlas.AtlasRegion region : atlas.getRegions()) {
-            if (region.name.startsWith("Alien Die")) { // Vérifie le bon préfixe dans ton atlas
+            if (region.name.startsWith("Alien Die")) {
                 alienDeathFrames.add(region);
             }
         }
@@ -200,6 +212,21 @@ public class GameScreen extends ScreenAdapter {
         } else {
             Gdx.app.error(TAG, "No explosion animation frames found in the atlas!");
         }
+
+        Array<TextureRegion> electricFieldFrames = new Array<>();
+        for (TextureAtlas.AtlasRegion region : atlas.getRegions()) {
+            if (region.name.startsWith("Electric Obstacles")) {
+                electricFieldFrames.add(region);
+            }
+        }
+
+        if (electricFieldFrames.size > 0) {
+            electricFieldAnimation = new Animation<>(0.1f, electricFieldFrames, Animation.PlayMode.LOOP);
+            Gdx.app.log(TAG, "Electric field animation loaded with " + electricFieldFrames.size + " frames.");
+        } else {
+            Gdx.app.error(TAG, "No electric field animation frames found!");
+        }
+
 
         cosmonaute = new Cosmonaute(atlas, this);
         cosmonaute.setPosition(WORLD_WIDTH / 4, WORLD_HEIGHT / 2);
@@ -224,17 +251,20 @@ public class GameScreen extends ScreenAdapter {
     private void setupTouchpad() {
         uiStage = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
         skin = new Skin(Gdx.files.internal("uiskin.json"));
-        Touchpad.TouchpadStyle style = skin.get(Touchpad.TouchpadStyle.class);
+
+        Touchpad.TouchpadStyle style = new Touchpad.TouchpadStyle();
+        style.background = skin.getDrawable("border-circle");
+        style.knob = skin.getDrawable("touchpad-knob");
 
         touchpad = new Touchpad(10, style);
-        touchpad.setBounds(WORLD_WIDTH - 215, 15, 200, 200);
+        touchpad.setBounds(15, 15, 200, 200);
         uiStage.addActor(touchpad);
 
         InputMultiplexer multiplexer = new InputMultiplexer();
         multiplexer.addProcessor(uiStage);
         Gdx.input.setInputProcessor(multiplexer);
 
-        if (DEBUG) Gdx.app.log(TAG, "Touchpad initialized with uiskin.json.");
+        if (DEBUG) Gdx.app.log(TAG, "Touchpad initialized with circular transparent style.");
     }
 
     @Override
@@ -249,11 +279,6 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void update(float delta) {
-        if (isGameOver && Gdx.input.justTouched()) {
-            restart();
-            return;
-        }
-
         if (isDying) {
             deathTimer += delta;
             Gdx.app.log(TAG, "Death timer: " + deathTimer);
@@ -266,14 +291,19 @@ public class GameScreen extends ScreenAdapter {
             return;
         }
 
-        if (isGameOver) return;
-
         if (Gdx.input.justTouched()) {
             if (!isTouchpadTouched()) {
                 Missile missile = cosmonaute.tirer();
                 playerMissiles.add(missile);
                 if (DEBUG) Gdx.app.log(TAG, "Screen touched, missile fired.");
             }
+        }
+
+        if (Gdx.input.justTouched() && !isTouchpadTouched()) {
+            Missile missile = cosmonaute.tirer();
+            playerMissiles.add(missile);
+            cosmonaute.startFiring();
+            if (DEBUG) Gdx.app.log(TAG, "Screen touched, missile fired.");
         }
 
         updateCosmonaute(delta);
@@ -283,9 +313,24 @@ public class GameScreen extends ScreenAdapter {
         updateMissiles(delta);
         checkCollisions();
         updateLevel(delta);
+        updateElectricField(delta);
     }
 
+    private void updateElectricField(float delta) {
+        electricFieldSpawnTimer += delta;
+        if (electricFieldSpawnTimer >= electricFieldSpawnInterval) {
+            spawnElectricField();
+            electricFieldSpawnTimer = 0f;
+        }
 
+        for (int i = electricFields.size - 1; i >= 0; i--) {
+            ElectricField field = electricFields.get(i);
+            field.update(delta);
+            if (field.isOutOfScreen()) {
+                electricFields.removeIndex(i);
+            }
+        }
+    }
 
 
     private boolean isTouchpadTouched() {
@@ -300,15 +345,8 @@ public class GameScreen extends ScreenAdapter {
 
 
     public void setGameOver() {
-        isGameOver = true;
-        isDying = false;
-
-        planetes.clear();
-        aliens.clear();
-        playerMissiles.clear();
-        enemyRockets.clear();
-
-        if (DEBUG) Gdx.app.log(TAG, "Game Over triggered. Clearing game elements.");
+        if (DEBUG) Gdx.app.log(TAG, "Game Over triggered. Transitioning to GameOverScreen.");
+        startScreen.setScreen(new GameOverScreen(startScreen, atlas, score, useGyroscope));
     }
 
 
@@ -321,8 +359,19 @@ public class GameScreen extends ScreenAdapter {
             cosmonaute.setVelocity(vx, vy);
         }
         cosmonaute.update(delta);
-        blockCosmonaute();
+
+        if (cosmonaute.getCollisionCircle().x - cosmonaute.getCollisionCircle().radius <= 0 ||
+            cosmonaute.getCollisionCircle().x + cosmonaute.getCollisionCircle().radius >= WORLD_WIDTH ||
+            cosmonaute.getCollisionCircle().y - cosmonaute.getCollisionCircle().radius <= 0 ||
+            cosmonaute.getCollisionCircle().y + cosmonaute.getCollisionCircle().radius >= WORLD_HEIGHT) {
+
+            if (DEBUG) Gdx.app.log(TAG, "Collision: Cosmonaute hit the screen border.");
+            triggerDeath();
+            return;
+        }
+
     }
+
 
     private void updatePlanetes(float delta) {
         for (Planete p : planetes) {
@@ -343,7 +392,7 @@ public class GameScreen extends ScreenAdapter {
             alien.update(delta);
         }
         for (int i = aliens.size - 1; i >= 0; i--) {
-            if (aliens.get(i).isFinishedExploding()) {  // ✅ Vérifie bien que l'alien a fini d'exploser
+            if (aliens.get(i).isFinishedExploding()) {
                 aliens.removeIndex(i);
                 if (DEBUG) Gdx.app.log(TAG, "Alien removed after death animation.");
             }
@@ -365,13 +414,25 @@ public class GameScreen extends ScreenAdapter {
 
                 if (m.getCollisionCircle().overlaps(alienCircle)) {
                     if (DEBUG) Gdx.app.log(TAG, "Alien hit by missile.");
-                    alien.die();  // On active l'animation de mort
+                    alien.die();
                     playerMissiles.removeIndex(j);
                     break;
                 }
             }
         }
     }
+
+    private void spawnElectricField() {
+        float x = WORLD_WIDTH;
+        float y = MathUtils.random(50, WORLD_HEIGHT - 100);
+        float width = 140;
+        float height = 160;
+        float speed = 150f;
+
+        electricFields.add(new ElectricField(electricFieldAnimation, x, y, width, height, speed));
+        if (DEBUG) Gdx.app.log(TAG, "Electric field spawned at (" + x + ", " + y + ").");
+    }
+
 
     private void updateMissiles(float delta) {
         for (Missile m : playerMissiles) {
@@ -413,7 +474,7 @@ public class GameScreen extends ScreenAdapter {
             Gdx.app.log(TAG, "alienRegion dimensions -> Width: " + alienRegion.getRegionWidth() + ", Height: " + alienRegion.getRegionHeight());
         }
 
-        float y = MathUtils.random(0, WORLD_HEIGHT - (alienRegion != null ? alienRegion.getRegionHeight() * 0.5f : 50)); // Utilise 50 par défaut si null
+        float y = MathUtils.random(0, WORLD_HEIGHT - (alienRegion != null ? alienRegion.getRegionHeight() * 0.5f : 50));
 
         float speed = 100 + (currentStage - 1) * 20;
 
@@ -449,6 +510,15 @@ public class GameScreen extends ScreenAdapter {
             }
         }
 
+        for (ElectricField field : electricFields) {
+            if (field.collidesWith(cosmonaute)) {
+                if (DEBUG) Gdx.app.log(TAG, "Collision: Cosmonaute hit by electric field.");
+                triggerDeath();
+                return;
+            }
+        }
+
+
         for (Roquet rocket : enemyRockets) {
             if (Intersector.overlaps(cosmonaute.getCollisionCircle(), rocket.getCollisionRect())) {
                 if (DEBUG) Gdx.app.log(TAG, "Collision: Cosmonaute hit by enemy rocket.");
@@ -462,7 +532,7 @@ public class GameScreen extends ScreenAdapter {
             for (int j = playerMissiles.size - 1; j >= 0; j--) {
                 Missile m = playerMissiles.get(j);
                 TextureRegion currentFrame = alien.getCurrentRegion();
-                if (currentFrame == null) return; // Évite une erreur si l'animation est mal initialisée
+                if (currentFrame == null) return;
 
                 float alienWidth = currentFrame.getRegionWidth() * alien.getScale();
                 float alienHeight = currentFrame.getRegionHeight() * alien.getScale();
@@ -470,12 +540,12 @@ public class GameScreen extends ScreenAdapter {
                 com.badlogic.gdx.math.Circle alienCircle = new com.badlogic.gdx.math.Circle(
                     alien.getX() + (alienWidth / 2f),
                     alien.getY() + (alienHeight / 2f),
-                    Math.min(alienWidth, alienHeight) / 3f // Rayon du cercle de collision
+                    Math.min(alienWidth, alienHeight) / 3f
                 );
 
                 if (m.getCollisionCircle().overlaps(alienCircle)) {
                     if (DEBUG) Gdx.app.log(TAG, "Alien hit by missile.");
-                    alien.die();  // On active l'animation de mort au lieu de le supprimer immédiatement
+                    alien.die();
                     playerMissiles.removeIndex(j);
                     break;
                 }
@@ -589,33 +659,6 @@ public class GameScreen extends ScreenAdapter {
         cosmonaute.setPosition(clampedX, clampedY);
     }
 
-    private void restart() {
-        if (DEBUG) Gdx.app.log(TAG, "Restarting game.");
-
-        isGameOver = false;
-        isDying = false;
-        deathTimer = 0f;
-
-        cosmonaute.setPosition(WORLD_WIDTH / 4, WORLD_HEIGHT / 2);
-        cosmonaute.setVelocity(0, 0);
-        cosmonaute.reset();
-
-        planetes.clear();
-        aliens.clear();
-        playerMissiles.clear();
-        enemyRockets.clear();
-
-        score = 0;
-        levelTimer = 0f;
-        currentStage = 1;
-        scrollSpeedFactor = 1.0f;
-        alienSpawnInterval = 10f;
-
-        if (DEBUG) Gdx.app.log(TAG, "Game restarted successfully.");
-    }
-
-
-
     private void clearScreen() {
         Gdx.gl.glClearColor(Color.BLACK.r, Color.BLACK.g, Color.BLACK.b, Color.BLACK.a);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -637,6 +680,10 @@ public class GameScreen extends ScreenAdapter {
         for (Missile m : playerMissiles) {
             m.draw(batch);
         }
+        for (ElectricField field : electricFields) {
+            field.draw(batch);
+        }
+
         for (int i = enemyRockets.size - 1; i >= 0; i--) {
             Roquet rocket = enemyRockets.get(i);
 
@@ -646,7 +693,6 @@ public class GameScreen extends ScreenAdapter {
                 rocket.draw(batch);
             }
 
-            // Si l'explosion est terminée, on supprime le roquet
             if (rocket.isFinishedExploding()) {
                 enemyRockets.removeIndex(i);
             }
@@ -665,10 +711,6 @@ public class GameScreen extends ScreenAdapter {
         }
 
         batch.end();
-
-        if (isGameOver) {
-            drawGameOver();
-        }
 
         drawDebug();
 
@@ -694,27 +736,6 @@ public class GameScreen extends ScreenAdapter {
         if (DEBUG) Gdx.app.log(TAG, "Death triggered. Waiting for animation to finish.");
     }
 
-
-    private void drawGameOver() {
-        batch.begin();
-
-        float scaleFactor = 0.6f;
-        float gameOverWidth = gameOverRegion.getRegionWidth() * scaleFactor;
-        float gameOverHeight = gameOverRegion.getRegionHeight() * scaleFactor;
-        float drawX = (WORLD_WIDTH - gameOverWidth) / 2;
-        float drawY = (WORLD_HEIGHT - gameOverHeight) / 2;
-
-        batch.draw(gameOverRegion, drawX, drawY, gameOverWidth, gameOverHeight);
-
-        bitmapFont.getData().setScale(2f);
-        bitmapFont.draw(batch, "Tap to Restart", drawX + gameOverWidth / 4, drawY - 50);
-
-        batch.end();
-    }
-
-
-
-
     private void drawDebug() {
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
@@ -733,6 +754,10 @@ public class GameScreen extends ScreenAdapter {
 
         for (Planete planete : planetes) {
             planete.drawDebug(shapeRenderer);
+        }
+
+        for (ElectricField electricField : electricFields) {
+            electricField.drawDebug(shapeRenderer);
         }
 
         shapeRenderer.setColor(Color.RED);

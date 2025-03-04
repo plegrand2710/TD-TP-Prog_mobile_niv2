@@ -20,6 +20,12 @@ public class Cosmonaute {
     private static final boolean DEBUG1 = true;
 
     private boolean isDead = false;
+    private float fireTimer = 0;
+    private boolean isFiring = false;
+    private Animation<TextureRegion> fireAnimation;
+    private float fireAnimationTimer = 0;
+
+
     private Animation<TextureRegion> deathAnimation;
     private float deathTimer = 0;
 
@@ -34,6 +40,7 @@ public class Cosmonaute {
     private static final float SCALE_FACTOR = 0.3f;
     private final Animation<TextureRegion> animation;
     private final TextureAtlas _atlas;
+
 
     public Cosmonaute(TextureAtlas atlas, GameScreen gameScreen) {
         this.gameScreen = gameScreen;
@@ -92,6 +99,23 @@ public class Cosmonaute {
         }
 
 
+        ArrayList<TextureRegion> fireFrames = new ArrayList<>();
+        for (TextureAtlas.AtlasRegion region : _atlas.getRegions()) {
+            if (region.name.startsWith("Character Fire")) {
+                fireFrames.add(region);
+            }
+        }
+
+        fireFrames.sort(Comparator.comparing(TextureRegion::toString));
+
+        if (!fireFrames.isEmpty()) {
+            fireAnimation = new Animation<TextureRegion>(0.05f, fireFrames.toArray(new TextureRegion[fireFrames.size()]));
+            fireAnimation.setPlayMode(Animation.PlayMode.NORMAL);
+            Gdx.app.log(TAG, "Fire animation loaded with " + fireFrames.size() + " frames.");
+        } else {
+            Gdx.app.error(TAG, "No fire animation frames found in the atlas!");
+        }
+
 
         if (frames.isEmpty()) {
             if (DEBUG1) {
@@ -121,10 +145,21 @@ public class Cosmonaute {
         return collisionCircle;
     }
 
+    public void startFiring() {
+        isFiring = true;
+        fireTimer = 0;
+    }
+
     public void reset() {
         isDead = false;
         deathTimer = 0;
     }
+
+    public void fire() {
+        isFiring = true;
+        fireAnimationTimer = 0;
+    }
+
 
     public void update(float delta) {
         if (isDead) {
@@ -149,15 +184,18 @@ public class Cosmonaute {
             return;
         }
 
+        if (isFiring) {
+            fireAnimationTimer += delta;
+            if (fireAnimation.isAnimationFinished(fireAnimationTimer)) {
+                isFiring = false;
+            }
+        }
+
         animationTimer += delta;
         x += xSpeed * delta;
         y += ySpeed * delta;
         collisionCircle.setPosition(x, y);
     }
-
-
-
-
 
     public void setVelocity(float vx, float vy) {
         this.xSpeed = vx;
@@ -180,31 +218,19 @@ public class Cosmonaute {
     public float getY() { return y; }
 
     public void draw(SpriteBatch batch) {
+        TextureRegion currentFrame;
+
         if (isDead) {
-            if (deathAnimation != null) {
-                if (deathAnimation.isAnimationFinished(deathTimer)) {
-                    Gdx.app.log(TAG, "Cosmonaute death animation finished. Hiding sprite.");
-                    return;
-                }
-
-                TextureRegion currentFrame = deathAnimation.getKeyFrame(deathTimer);
-                Gdx.app.log(TAG, "Drawing death animation frame: " + deathAnimation.getKeyFrameIndex(deathTimer));
-
-                float drawX = collisionCircle.x - (currentFrame.getRegionWidth() * SCALE_FACTOR) / 2;
-                float drawY = collisionCircle.y - (currentFrame.getRegionHeight() * SCALE_FACTOR) / 2;
-
-                batch.draw(
-                    currentFrame,
-                    drawX,
-                    drawY,
-                    currentFrame.getRegionWidth() * SCALE_FACTOR,
-                    currentFrame.getRegionHeight() * SCALE_FACTOR
-                );
+            if (deathAnimation != null && deathAnimation.isAnimationFinished(deathTimer)) {
+                return;
             }
-            return;
+            currentFrame = deathAnimation.getKeyFrame(deathTimer);
+        } else if (isFiring && fireAnimation != null) {
+            currentFrame = fireAnimation.getKeyFrame(fireAnimationTimer);
+        } else {
+            currentFrame = animation.getKeyFrame(animationTimer);
         }
 
-        TextureRegion currentFrame = animation.getKeyFrame(animationTimer);
         float drawX = collisionCircle.x - (currentFrame.getRegionWidth() * SCALE_FACTOR) / 2;
         float drawY = collisionCircle.y - (currentFrame.getRegionHeight() * SCALE_FACTOR) / 2;
 
@@ -216,6 +242,7 @@ public class Cosmonaute {
             currentFrame.getRegionHeight() * SCALE_FACTOR
         );
     }
+
 
 
 
@@ -262,9 +289,11 @@ public class Cosmonaute {
     }
 
     public Missile tirer() {
+        fire();
         TextureRegion bulletRegion = _atlas.findRegion("Bullet (1)");
         return new Missile(x, y, 400, 0, true, bulletRegion);
     }
+
 
     public void die() {
         if (isDead) return;
