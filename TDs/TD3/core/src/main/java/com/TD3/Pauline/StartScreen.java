@@ -25,6 +25,8 @@ public class StartScreen extends ScreenAdapter {
     private float WORLD_WIDTH;
     private float WORLD_HEIGHT;
 
+    private final Game game;
+
     private Stage stage;
     private TextureAtlas atlas;
     private TextureRegion backgroundRegion;
@@ -41,6 +43,7 @@ public class StartScreen extends ScreenAdapter {
     private static final float EXIT_BUTTON_SCALE = 1.2f;
 
     public StartScreen(Game game) {
+        this.game = game;
         this.startScreen = this;
         WORLD_WIDTH = Gdx.graphics.getWidth();
         WORLD_HEIGHT = Gdx.graphics.getHeight();
@@ -144,6 +147,9 @@ public class StartScreen extends ScreenAdapter {
         return button;
     }
 
+    public Game getGame() {  // ✅ Getter pour récupérer Game
+        return game;
+    }
     private ImageButton createImageButton(TextureRegion region, float scaleFactor) {
         float buttonWidth = (region.getRegionWidth() / 3f) * scaleFactor;
         float buttonHeight = (region.getRegionHeight() / 3f) * scaleFactor;

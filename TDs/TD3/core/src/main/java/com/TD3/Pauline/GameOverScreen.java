@@ -14,7 +14,9 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
@@ -36,16 +38,25 @@ public class GameOverScreen extends ScreenAdapter {
     private Stage stage;
     private ImageButton menuButton;
     private ShapeRenderer shapeRenderer;
+    private TextureAtlas atlas;
+
+    private float menuX, menuY, menuWidth, menuHeight;
+
+    private Image restartOverlay;
+    private Image menuOverlay;
+
 
     private float restartX, restartY, restartWidth, restartHeight;
 
     public GameOverScreen(StartScreen startScreen, TextureAtlas atlas, int finalScore, boolean useGyroscope) {
         this.startScreen = startScreen;
+        this.atlas = atlas;
         this.gameOverRegion = atlas.findRegion("Game Over GUI");
         this.backgroundRegion = atlas.findRegion("Game Background");
-        this.buttonRegion = atlas.findRegion("Blank Button");
+        this.buttonRegion = atlas.findRegion("Blank Button-2");
         this.finalScore = finalScore;
         this.useGyroscope = useGyroscope;
+
 
         float WORLD_WIDTH = Gdx.graphics.getWidth();
         float WORLD_HEIGHT = Gdx.graphics.getHeight();
@@ -55,6 +66,8 @@ public class GameOverScreen extends ScreenAdapter {
         viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
         batch = new SpriteBatch();
         bitmapFont = new BitmapFont();
+        bitmapFont.getData().setScale(2f);
+
         glyphLayout = new GlyphLayout();
         shapeRenderer = new ShapeRenderer();
 
@@ -65,11 +78,12 @@ public class GameOverScreen extends ScreenAdapter {
     }
 
     private void setupUI() {
-        float scaleFactor = 0.6f;
+        float scaleFactor = 0.8f;
         float gameOverWidth = gameOverRegion.getRegionWidth() * scaleFactor;
         float gameOverHeight = gameOverRegion.getRegionHeight() * scaleFactor;
         float drawX = (viewport.getWorldWidth() - gameOverWidth) / 2;
-        float drawY = (viewport.getWorldHeight() - gameOverHeight) / 2 + 60;
+        float drawY = (viewport.getWorldHeight() - gameOverHeight) / 2 ;
+        TextureRegionDrawable clickedButtonDrawable = new TextureRegionDrawable(atlas.findRegion("Blank Button"));
 
         Image gameOverImage = new Image(new TextureRegionDrawable(gameOverRegion));
         gameOverImage.setSize(gameOverWidth, gameOverHeight);
@@ -81,20 +95,58 @@ public class GameOverScreen extends ScreenAdapter {
         restartWidth = gameOverWidth * 0.605f;
         restartHeight = gameOverHeight * 0.15f;
 
+        restartOverlay = new Image(new TextureRegionDrawable(atlas.findRegion("Blank Button")));
+        restartOverlay.setSize(restartWidth, restartHeight);
+        restartOverlay.setPosition(restartX, restartY);
+        restartOverlay.setVisible(false);
+        stage.addActor(restartOverlay);
+
+        menuOverlay = new Image(new TextureRegionDrawable(atlas.findRegion("Blank Button")));
+        menuOverlay.setSize(menuWidth, menuHeight);
+        menuOverlay.setPosition(menuX, menuY + 100);
+        menuOverlay.setVisible(false);
+        stage.addActor(menuOverlay);
+
+
+        menuWidth = 260;
+        menuHeight = 150;
+        menuX = viewport.getWorldWidth() / 2 - menuWidth / 2;
+        menuY = drawY - menuHeight + 70;
+
         menuButton = new ImageButton(new TextureRegionDrawable(buttonRegion));
-        menuButton.setSize(160, 50);
-        menuButton.setPosition(viewport.getWorldWidth() / 2 - 80, drawY - 70);
-        menuButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
+        menuButton.setSize(200, 100);
+        menuButton.setPosition(viewport.getWorldWidth() / 2 - 100, drawY + 45);
+
+        stage.addActor(menuButton);
+
+        TextButton.TextButtonStyle textStyle = createTextStyle();
+        TextButton menuTextButton = new TextButton("Menu", textStyle);
+        menuTextButton.setSize(menuWidth, menuHeight);
+        menuTextButton.setPosition(menuX, menuY + 100);
+
+        ImageButton.ImageButtonStyle newStyle = new ImageButton.ImageButtonStyle(menuButton.getStyle());
+        newStyle.imageUp = clickedButtonDrawable;
+        menuTextButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
-                //startScreen.setScreen(new StartScreen(startScreen));
+                Gdx.app.log(TAG, "Changement d'image du bouton...");
+                
+                menuButton.setStyle(newStyle);
+                menuButton.invalidate();
+                stage.act();
+
+                new Thread(() -> {
+                    StartScreen newScreen = new StartScreen(startScreen.getGame());
+                    Gdx.app.postRunnable(() -> startScreen.getGame().setScreen(newScreen));
+                }).start();
+
             }
         });
 
-        stage.addActor(menuButton);
+        stage.addActor(menuTextButton);
+
     }
 
-    @Override
     public void render(float delta) {
         clearScreen();
 
@@ -106,10 +158,11 @@ public class GameOverScreen extends ScreenAdapter {
             batch.draw(backgroundRegion, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
         }
 
-        glyphLayout.setText(bitmapFont, "Score: " + finalScore);
-        bitmapFont.draw(batch, "Score: " + finalScore,
-            (viewport.getWorldWidth() - glyphLayout.width) / 2,
-            viewport.getWorldHeight() / 2 - 40);
+        TextButton.TextButtonStyle textStyle = createTextStyle();
+        TextButton scoreText = new TextButton("Score: " + finalScore, textStyle);
+        scoreText.setSize(200, 50);
+        scoreText.setPosition(viewport.getWorldWidth() / 2 - 100, viewport.getWorldHeight() / 2 - 100);
+        stage.addActor(scoreText);
 
         batch.end();
 
@@ -127,10 +180,23 @@ public class GameOverScreen extends ScreenAdapter {
 
             if (touchX >= restartX && touchX <= restartX + restartWidth &&
                 touchY >= restartY && touchY <= restartY + restartHeight) {
-                startScreen.setScreen(new GameScreen(startScreen, useGyroscope));
+
+                Gdx.app.log(TAG, "Affichage de l'overlay sur Restart...");
+
+                restartOverlay.setVisible(true);
+                stage.act();
+
+                Timer.schedule(new Timer.Task() {
+                    @Override
+                    public void run() {
+                        startScreen.setScreen(new GameScreen(startScreen, useGyroscope));
+                    }
+                }, 0.5f);
             }
         }
     }
+
+
 
     private void drawDebug() {
         shapeRenderer.setProjectionMatrix(camera.combined);
@@ -145,6 +211,12 @@ public class GameOverScreen extends ScreenAdapter {
     private void clearScreen() {
         Gdx.gl.glClearColor(Color.BLACK.r, Color.BLACK.g, Color.BLACK.b, Color.BLACK.a);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+    }
+
+    private TextButton.TextButtonStyle createTextStyle() {
+        TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
+        style.font = bitmapFont;
+        return style;
     }
 
     @Override
