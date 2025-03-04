@@ -3,6 +3,7 @@ package com.TD3.Pauline;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -45,6 +46,8 @@ public class GameScreen extends ScreenAdapter {
     private SpriteBatch batch;
 
     private final StartScreen startScreen;
+
+    private Music backgroundMusic;
 
 
     private Cosmonaute cosmonaute;
@@ -105,6 +108,11 @@ public class GameScreen extends ScreenAdapter {
         WORLD_WIDTH = Gdx.graphics.getWidth();
         WORLD_HEIGHT = Gdx.graphics.getHeight();
         if (DEBUG) Gdx.app.log(TAG, "GameScreen constructor called with useGyroscope=" + useGyroscope);
+
+        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("ambianceSoundSpace.wav"));
+        backgroundMusic.setLooping(true);
+        backgroundMusic.setVolume(0.9f);
+        backgroundMusic.play();
     }
 
     @Override
@@ -727,6 +735,11 @@ public class GameScreen extends ScreenAdapter {
         if (uiStage != null)
             uiStage.dispose();
 
+        if (backgroundMusic != null) {
+            backgroundMusic.dispose();
+            backgroundMusic = null;
+            Gdx.app.log(TAG, "🎵 Musique d'ambiance supprimée.");
+        }
         Gdx.app.log(TAG, "🗑️ GameScreen.dispose() appelé !");
 
     }

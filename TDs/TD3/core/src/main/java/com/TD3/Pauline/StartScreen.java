@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.audio.Music;
 
 public class StartScreen extends ScreenAdapter {
     private static final boolean DEBUG = true;
@@ -26,6 +27,8 @@ public class StartScreen extends ScreenAdapter {
     private float WORLD_HEIGHT;
 
     private final Game game;
+
+    private Music backgroundMusic;
 
     private Stage stage;
     private TextureAtlas atlas;
@@ -61,6 +64,10 @@ public class StartScreen extends ScreenAdapter {
         Gdx.input.setInputProcessor(stage);
 
         this.startScreen = this;
+        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("ambianceSound1.wav"));
+        backgroundMusic.setLooping(true);  // 🔁 Répétition automatique
+        backgroundMusic.setVolume(0.9f);   // 🔊 Volume à 50%
+        backgroundMusic.play();
 
         Gdx.app.log(TAG, "✅ StartScreen initialisé avec succès !");
 
@@ -149,6 +156,9 @@ public class StartScreen extends ScreenAdapter {
     @Override
     public void hide() {
         Gdx.app.log(TAG, "🛑 StartScreen caché (hide() appelé).");
+        if (backgroundMusic != null) {
+            backgroundMusic.stop();
+        }
     }
     private TextButton createTextButton(String text, TextButtonStyle style, float scaleFactor) {
         float buttonWidth = (blankButtonRegion.getRegionWidth() / 3f) * scaleFactor;
@@ -200,6 +210,12 @@ public class StartScreen extends ScreenAdapter {
     public void dispose() {
         if (DEBUG) Gdx.app.log(TAG, "StartScreen dispose() called.");
         if (DEBUG) Gdx.app.log(TAG, "🗑️ Nettoyage de StartScreen...");
+
+        if (backgroundMusic != null) {
+            backgroundMusic.dispose();
+            backgroundMusic = null;
+            Gdx.app.log(TAG, "🎵 Musique d'ambiance supprimée.");
+        }
 
         if (stage != null) stage.dispose();
         if (atlas != null) atlas.dispose();
