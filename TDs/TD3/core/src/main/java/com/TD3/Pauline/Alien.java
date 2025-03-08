@@ -1,12 +1,14 @@
 package com.TD3.Pauline;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.Timer;
 
 import javax.swing.text.html.HTML;
 
@@ -15,7 +17,7 @@ public class Alien {
     private boolean movingLeft;
     private float scale;
     private static final float WORLD_HEIGHT = 640f;
-
+    private Music explosionMusic;
     private boolean isDying = false;
     private float deathTimer = 0f;
     private static final float DEATH_ANIMATION_DURATION = 0.5f;
@@ -44,6 +46,22 @@ public class Alien {
         if (!isDying) {
             isDying = true;
             deathTimer = 0f;
+            explosionMusic = Gdx.audio.newMusic(Gdx.files.internal("explosionSound.wav"));
+            explosionMusic.setLooping(false);
+            explosionMusic.setVolume(1.2f);
+            explosionMusic.setPosition(3f);
+            explosionMusic.play();
+
+            Timer.schedule(new Timer.Task() {
+                @Override
+                public void run() {
+                    if (explosionMusic != null) {
+                        explosionMusic.stop();
+                        explosionMusic.dispose();
+                        explosionMusic = null;
+                    }
+                }
+            }, 5);
             Gdx.app.log("Alien", "Alien is dying, animation started.");
         }
     }

@@ -22,6 +22,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.badlogic.gdx.graphics.g2d.Animation;
@@ -48,6 +49,9 @@ public class GameScreen extends ScreenAdapter {
     private final StartScreen startScreen;
 
     private Music backgroundMusic;
+    private Music gameOverMusic;
+    private Music explosionMusic;
+
 
 
     private Cosmonaute cosmonaute;
@@ -355,7 +359,6 @@ public class GameScreen extends ScreenAdapter {
 
     public void setGameOver() {
         if (DEBUG) Gdx.app.log(TAG, "Game Over triggered. Transitioning to GameOverScreen.");
-
         startScreen.setScreen(new GameOverScreen( startScreen, atlas, score, useGyroscope));
     }
 
@@ -576,6 +579,22 @@ public class GameScreen extends ScreenAdapter {
             for (int j = playerMissiles.size - 1; j >= 0; j--) {
                 Missile missile = playerMissiles.get(j);
                 if (rocket.collidesWith(missile)) {
+                    explosionMusic = Gdx.audio.newMusic(Gdx.files.internal("explosionSound.wav"));
+                    explosionMusic.setLooping(false);
+                    explosionMusic.setVolume(1.2f);
+                    explosionMusic.setPosition(3f);
+                    explosionMusic.play();
+
+                    Timer.schedule(new Timer.Task() {
+                        @Override
+                        public void run() {
+                            if (explosionMusic != null) {
+                                explosionMusic.stop();
+                                explosionMusic.dispose();
+                                explosionMusic = null;
+                            }
+                        }
+                    }, 5);
                     rocket.explode();
                     playerMissiles.removeIndex(j);
                     if (DEBUG) Gdx.app.log(TAG, "Rocket hit! Explosion triggered.");
@@ -751,6 +770,27 @@ public class GameScreen extends ScreenAdapter {
         deathTimer = 0f;
         cosmonaute.die();
 
+        if (backgroundMusic != null) {
+            backgroundMusic.dispose();
+            backgroundMusic = null;
+            Gdx.app.log(TAG, "🎵 Musique d'ambiance supprimée.");
+        }
+        gameOverMusic = Gdx.audio.newMusic(Gdx.files.internal("gameOverSound.wav"));
+        gameOverMusic.setLooping(false);
+        gameOverMusic.setVolume(0.9f);
+        gameOverMusic.setPosition(2f);
+        gameOverMusic.play();
+
+        Timer.schedule(new Timer.Task() {
+            @Override
+            public void run() {
+                if (gameOverMusic != null) {
+                    gameOverMusic.stop();
+                    gameOverMusic.dispose();
+                    gameOverMusic = null;
+                }
+            }
+        }, 5);
         if (DEBUG) Gdx.app.log(TAG, "Death triggered. Waiting for animation to finish.");
     }
 

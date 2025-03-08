@@ -3,6 +3,7 @@ package com.TD3.Pauline;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -46,6 +47,7 @@ public class GameOverScreen extends ScreenAdapter {
     private Image restartOverlay;
     private Image menuOverlay;
 
+    private Music backgroundMusic;
 
     private float restartX, restartY, restartWidth, restartHeight;
 
@@ -74,6 +76,12 @@ public class GameOverScreen extends ScreenAdapter {
 
         stage = new Stage(viewport);
         Gdx.input.setInputProcessor(stage);
+
+        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("ambianceSound1.wav"));
+        backgroundMusic.setLooping(true);  // 🔁 Répétition automatique
+        backgroundMusic.setVolume(0.9f);   // 🔊 Volume à 50%
+        backgroundMusic.setPosition(2f);
+        backgroundMusic.play();
 
         setupUI();
     }
@@ -140,6 +148,11 @@ public class GameOverScreen extends ScreenAdapter {
                 Game game = startScreen.getGame();
                 StartScreen newScreen = new StartScreen(startScreen);
 
+                if (backgroundMusic != null) {
+                    backgroundMusic.dispose();
+                    backgroundMusic = null;
+                    Gdx.app.log(TAG, "🎵 Musique d'ambiance supprimée.");
+                }
                 Gdx.app.postRunnable(() -> game.setScreen(newScreen));
                 Gdx.app.log(TAG, "✅ Retour à StartScreen !");
 
@@ -192,9 +205,14 @@ public class GameOverScreen extends ScreenAdapter {
                 Timer.schedule(new Timer.Task() {
                     @Override
                     public void run() {
+                        if (backgroundMusic != null) {
+                            backgroundMusic.dispose();
+                            backgroundMusic = null;
+                            Gdx.app.log(TAG, "🎵 Musique d'ambiance supprimée.");
+                        }
                         startScreen.setScreen(new GameScreen(startScreen, useGyroscope));
                     }
-                }, 0.5f);
+                }, 1f);
             }
         }
     }
@@ -228,5 +246,10 @@ public class GameOverScreen extends ScreenAdapter {
         bitmapFont.dispose();
         stage.dispose();
         shapeRenderer.dispose();
+        if (backgroundMusic != null) {
+            backgroundMusic.dispose();
+            backgroundMusic = null;
+            Gdx.app.log(TAG, "🎵 Musique d'ambiance supprimée.");
+        }
     }
 }
