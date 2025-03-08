@@ -31,7 +31,7 @@ import com.badlogic.gdx.utils.Array;
 import java.util.Comparator;
 
 public class GameScreen extends ScreenAdapter {
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private static final String TAG = "SpaceWarriorApp";
 
     private float WORLD_WIDTH;
@@ -647,7 +647,7 @@ public class GameScreen extends ScreenAdapter {
 
         if (DEBUG) Gdx.app.log(TAG, "Random planet selected");
 
-        Planete p = new Planete(chosen, null);
+        Planete p = new Planete(chosen);
         float scaleFactor = MathUtils.random(0.3f, 0.6f);
         p.setScale(scaleFactor);
 
@@ -741,7 +741,7 @@ public class GameScreen extends ScreenAdapter {
 
         batch.end();
 
-        drawDebug();
+        //drawDebug();
 
     }
 

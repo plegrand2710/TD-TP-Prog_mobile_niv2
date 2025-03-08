@@ -23,7 +23,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class GameOverScreen extends ScreenAdapter {
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private static final String TAG = "SpaceWarriorApp";
 
     private final StartScreen startScreen;

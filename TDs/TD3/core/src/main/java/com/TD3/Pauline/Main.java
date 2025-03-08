@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class Main extends Game {
-    public static final boolean DEBUG = true;
+    public static final boolean DEBUG = false;
     public static final String TAG = "SpaceWarriorApp";
 
     private TextureAtlas atlas;
