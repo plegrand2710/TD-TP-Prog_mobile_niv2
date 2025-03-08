@@ -3,7 +3,6 @@ package com.TD4.Pauline;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -11,7 +10,6 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
@@ -20,127 +18,127 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.audio.Music;
 
 public class StartScreen extends ScreenAdapter {
-    private static final boolean DEBUG = true;
-    private static final String TAG = "SpaceWarriorApp";
+    private static final boolean _DEBUG = true;
+    private static final String _TAG = "SpaceWarriorApp";
 
-    private float WORLD_WIDTH;
-    private float WORLD_HEIGHT;
+    private float _WORLD_WIDTH;
+    private float _WORLD_HEIGHT;
 
-    private final Game game;
+    private final Game _game;
 
-    private Music backgroundMusic;
+    private Music _backgroundMusic;
 
-    private Stage stage;
-    private TextureAtlas atlas;
-    private TextureRegion backgroundRegion;
-    private TextureRegion logoRegion;
-    private TextureRegion guiBoxRegion;
-    private TextureRegion exitButtonRegion;
-    private TextureRegion blankButtonRegion;
+    private Stage _stage;
+    private TextureAtlas _atlas;
+    private TextureRegion _backgroundRegion;
+    private TextureRegion _logoRegion;
+    private TextureRegion _guiBoxRegion;
+    private TextureRegion _exitButtonRegion;
+    private TextureRegion _blankButtonRegion;
 
-    private BitmapFont font;
+    private BitmapFont _font;
 
-    private static final float GYRO_BUTTON_SCALE = 1.5f;
-    private static final float TOUCHPAD_BUTTON_SCALE = 1.5f;
-    private static final float EXIT_BUTTON_SCALE = 1.2f;
+    private static final float _GYRO_BUTTON_SCALE = 1.5f;
+    private static final float _TOUCHPAD_BUTTON_SCALE = 1.5f;
+    private static final float _EXIT_BUTTON_SCALE = 1.2f;
 
     public StartScreen(Game game, TextureAtlas atlas, BitmapFont font,
                        TextureRegion backgroundRegion, TextureRegion logoRegion,
                        TextureRegion guiBoxRegion, TextureRegion exitButtonRegion, TextureRegion blankButtonRegion) {
-        this.game = game;
-        this.atlas = atlas;
-        this.font = font;
-        this.backgroundRegion = backgroundRegion;
-        this.logoRegion = logoRegion;
-        this.guiBoxRegion = guiBoxRegion;
-        this.exitButtonRegion = exitButtonRegion;
-        this.blankButtonRegion = blankButtonRegion;
+        this._game = game;
+        this._atlas = atlas;
+        this._font = font;
+        this._backgroundRegion = backgroundRegion;
+        this._logoRegion = logoRegion;
+        this._guiBoxRegion = guiBoxRegion;
+        this._exitButtonRegion = exitButtonRegion;
+        this._blankButtonRegion = blankButtonRegion;
 
-        this.WORLD_WIDTH = Gdx.graphics.getWidth();
-        this.WORLD_HEIGHT = Gdx.graphics.getHeight();
+        this._WORLD_WIDTH = Gdx.graphics.getWidth();
+        this._WORLD_HEIGHT = Gdx.graphics.getHeight();
 
-        stage = new Stage(new FitViewport(WORLD_WIDTH, WORLD_HEIGHT));
-        Gdx.input.setInputProcessor(stage);
+        _stage = new Stage(new FitViewport(_WORLD_WIDTH, _WORLD_HEIGHT));
+        Gdx.input.setInputProcessor(_stage);
 
-        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("ambianceSound1.wav"));
-        backgroundMusic.setLooping(true);
-        backgroundMusic.setVolume(0.9f);
-        backgroundMusic.play();
+        _backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("ambianceSound1.wav"));
+        _backgroundMusic.setLooping(true);
+        _backgroundMusic.setVolume(0.9f);
+        _backgroundMusic.play();
 
-        Gdx.app.log(TAG, "✅ StartScreen initialisé avec succès !");
+        Gdx.app.log(_TAG, "✅ StartScreen initialisé avec succès !");
 
     }
 
     public StartScreen(StartScreen existingScreen) {
         this(
-            existingScreen.game,
-            existingScreen.atlas,
-            existingScreen.font,
-            existingScreen.backgroundRegion,
-            existingScreen.logoRegion,
-            existingScreen.guiBoxRegion,
-            existingScreen.exitButtonRegion,
-            existingScreen.blankButtonRegion
+            existingScreen._game,
+            existingScreen._atlas,
+            existingScreen._font,
+            existingScreen._backgroundRegion,
+            existingScreen._logoRegion,
+            existingScreen._guiBoxRegion,
+            existingScreen._exitButtonRegion,
+            existingScreen._blankButtonRegion
         );
     }
 
     @Override
     public void show() {
-        Image background = new Image(backgroundRegion);
-        background.setSize(WORLD_WIDTH, WORLD_HEIGHT);
-        stage.addActor(background);
+        Image background = new Image(_backgroundRegion);
+        background.setSize(_WORLD_WIDTH, _WORLD_HEIGHT);
+        _stage.addActor(background);
 
-        Image guiBox = new Image(guiBoxRegion);
+        Image guiBox = new Image(_guiBoxRegion);
         float guiBoxScaleFactor = 0.35f;
-        float guiBoxWidth = WORLD_WIDTH * guiBoxScaleFactor;
-        float guiBoxHeight = guiBoxWidth * ((float) guiBoxRegion.getRegionHeight() / guiBoxRegion.getRegionWidth());
+        float guiBoxWidth = _WORLD_WIDTH * guiBoxScaleFactor;
+        float guiBoxHeight = guiBoxWidth * ((float) _guiBoxRegion.getRegionHeight() / _guiBoxRegion.getRegionWidth());
         guiBox.setSize(guiBoxWidth, guiBoxHeight);
-        guiBox.setPosition(WORLD_WIDTH / 2 - guiBoxWidth / 2, (WORLD_HEIGHT - guiBoxHeight) / 2);
-        stage.addActor(guiBox);
+        guiBox.setPosition(_WORLD_WIDTH / 2 - guiBoxWidth / 2, (_WORLD_HEIGHT - guiBoxHeight) / 2);
+        _stage.addActor(guiBox);
 
-        Image logo = new Image(logoRegion);
-        float logoWidth = WORLD_WIDTH * 0.2f;
-        float logoHeight = logoWidth * ((float) logoRegion.getRegionHeight() / logoRegion.getRegionWidth());
+        Image logo = new Image(_logoRegion);
+        float logoWidth = _WORLD_WIDTH * 0.2f;
+        float logoHeight = logoWidth * ((float) _logoRegion.getRegionHeight() / _logoRegion.getRegionWidth());
         logo.setSize(logoWidth, logoHeight);
-        logo.setPosition(WORLD_WIDTH / 2, 3 * WORLD_HEIGHT / 4, Align.center);
-        stage.addActor(logo);
+        logo.setPosition(_WORLD_WIDTH / 2, 3 * _WORLD_HEIGHT / 4, Align.center);
+        _stage.addActor(logo);
 
         TextButtonStyle buttonStyle = new TextButtonStyle();
-        buttonStyle.up = new TextureRegionDrawable(blankButtonRegion);
-        buttonStyle.font = font;
+        buttonStyle.up = new TextureRegionDrawable(_blankButtonRegion);
+        buttonStyle.font = _font;
 
-        TextButton gyroButton = createTextButton("Gyroscope", buttonStyle, GYRO_BUTTON_SCALE);
-        gyroButton.setPosition(WORLD_WIDTH / 2 - gyroButton.getWidth() / 2, WORLD_HEIGHT / 2 - gyroButton.getHeight() / 2);
-        stage.addActor(gyroButton);
+        TextButton gyroButton = createTextButton("Gyroscope", buttonStyle, _GYRO_BUTTON_SCALE);
+        gyroButton.setPosition(_WORLD_WIDTH / 2 - gyroButton.getWidth() / 2, _WORLD_HEIGHT / 2 - gyroButton.getHeight() / 2);
+        _stage.addActor(gyroButton);
 
-        TextButton touchPadButton = createTextButton("TouchPad", buttonStyle, TOUCHPAD_BUTTON_SCALE);
-        touchPadButton.setPosition(WORLD_WIDTH / 2 - touchPadButton.getWidth() / 2, gyroButton.getY() - touchPadButton.getHeight() * 1.5f);
-        stage.addActor(touchPadButton);
+        TextButton touchPadButton = createTextButton("TouchPad", buttonStyle, _TOUCHPAD_BUTTON_SCALE);
+        touchPadButton.setPosition(_WORLD_WIDTH / 2 - touchPadButton.getWidth() / 2, gyroButton.getY() - touchPadButton.getHeight() * 1.5f);
+        _stage.addActor(touchPadButton);
 
-        ImageButton exitButton = createImageButton(exitButtonRegion, EXIT_BUTTON_SCALE);
-        exitButton.setPosition(WORLD_WIDTH / 2 - exitButton.getWidth() / 2, touchPadButton.getY() - exitButton.getHeight() * 1.5f);
-        stage.addActor(exitButton);
+        ImageButton exitButton = createImageButton(_exitButtonRegion, _EXIT_BUTTON_SCALE);
+        exitButton.setPosition(_WORLD_WIDTH / 2 - exitButton.getWidth() / 2, touchPadButton.getY() - exitButton.getHeight() * 1.5f);
+        _stage.addActor(exitButton);
 
         gyroButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
             @Override
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
-                if (DEBUG) Gdx.app.log(TAG, "Gyroscope button tapped.");
-        game.setScreen(new GameScreen(StartScreen.this, true));
+                if (_DEBUG) Gdx.app.log(_TAG, "Gyroscope button tapped.");
+        _game.setScreen(new GameScreen(StartScreen.this, true));
             }
         });
 
         touchPadButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
             @Override
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
-                if (DEBUG) Gdx.app.log(TAG, "TouchPad button tapped.");
-                game.setScreen(new GameScreen(StartScreen.this, false));
+                if (_DEBUG) Gdx.app.log(_TAG, "TouchPad button tapped.");
+                _game.setScreen(new GameScreen(StartScreen.this, false));
             }
         });
 
         exitButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
             @Override
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
-                if (DEBUG) Gdx.app.log(TAG, "Exit button tapped.");
+                if (_DEBUG) Gdx.app.log(_TAG, "Exit button tapped.");
                 Gdx.app.exit();
             }
         });
@@ -148,15 +146,15 @@ public class StartScreen extends ScreenAdapter {
 
     @Override
     public void hide() {
-        Gdx.app.log(TAG, "🛑 StartScreen caché (hide() appelé).");
+        Gdx.app.log(_TAG, "🛑 StartScreen caché (hide() appelé).");
         Gdx.input.setInputProcessor(null);
-        if (backgroundMusic != null) {
-            backgroundMusic.stop();
+        if (_backgroundMusic != null) {
+            _backgroundMusic.stop();
         }
     }
     private TextButton createTextButton(String text, TextButtonStyle style, float scaleFactor) {
-        float buttonWidth = (blankButtonRegion.getRegionWidth() / 3f) * scaleFactor;
-        float buttonHeight = (blankButtonRegion.getRegionHeight() / 3f) * scaleFactor;
+        float buttonWidth = (_blankButtonRegion.getRegionWidth() / 3f) * scaleFactor;
+        float buttonHeight = (_blankButtonRegion.getRegionHeight() / 3f) * scaleFactor;
 
         TextButton button = new TextButton(text, style);
         button.setSize(buttonWidth, buttonHeight);
@@ -164,7 +162,7 @@ public class StartScreen extends ScreenAdapter {
     }
 
     public Game getGame() {
-        return game;
+        return _game;
     }
     private ImageButton createImageButton(TextureRegion region, float scaleFactor) {
         float buttonWidth = (region.getRegionWidth() / 3f) * scaleFactor;
@@ -179,40 +177,40 @@ public class StartScreen extends ScreenAdapter {
     public void render(float delta) {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        stage.act(delta);
-        stage.draw();
+        _stage.act(delta);
+        _stage.draw();
     }
 
     @Override
     public void resize(int width, int height) {
-        WORLD_WIDTH = width;
-        WORLD_HEIGHT = height;
-        stage.getViewport().update(width, height, true);
-        if (DEBUG) Gdx.app.log(TAG, "StartScreen resize() called: width=" + width + ", height=" + height);
+        _WORLD_WIDTH = width;
+        _WORLD_HEIGHT = height;
+        _stage.getViewport().update(width, height, true);
+        if (_DEBUG) Gdx.app.log(_TAG, "StartScreen resize() called: width=" + width + ", height=" + height);
     }
 
     public void setScreen(ScreenAdapter screen) {
         if (screen == null) {
-            Gdx.app.error(TAG, "❌ ERREUR: setScreen() appelé avec un écran null !");
+            Gdx.app.error(_TAG, "❌ ERREUR: setScreen() appelé avec un écran null !");
             return;
         }
 
-        Gdx.app.log(TAG, "🔄 Changement d'écran vers " + screen.getClass().getSimpleName());
-        game.setScreen(screen);
+        Gdx.app.log(_TAG, "🔄 Changement d'écran vers " + screen.getClass().getSimpleName());
+        _game.setScreen(screen);
     }
     @Override
     public void dispose() {
-        if (DEBUG) Gdx.app.log(TAG, "StartScreen dispose() called.");
-        if (DEBUG) Gdx.app.log(TAG, "🗑️ Nettoyage de StartScreen...");
+        if (_DEBUG) Gdx.app.log(_TAG, "StartScreen dispose() called.");
+        if (_DEBUG) Gdx.app.log(_TAG, "🗑️ Nettoyage de StartScreen...");
 
-        if (backgroundMusic != null) {
-            backgroundMusic.dispose();
-            backgroundMusic = null;
-            Gdx.app.log(TAG, "🎵 Musique d'ambiance supprimée.");
+        if (_backgroundMusic != null) {
+            _backgroundMusic.dispose();
+            _backgroundMusic = null;
+            Gdx.app.log(_TAG, "🎵 Musique d'ambiance supprimée.");
         }
 
-        if (stage != null) stage.dispose();
-        if (atlas != null) atlas.dispose();
-        if (font != null) font.dispose();
+        if (_stage != null) _stage.dispose();
+        if (_atlas != null) _atlas.dispose();
+        if (_font != null) _font.dispose();
     }
 }

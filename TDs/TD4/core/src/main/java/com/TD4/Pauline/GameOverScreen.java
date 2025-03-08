@@ -26,42 +26,42 @@ public class GameOverScreen extends ScreenAdapter {
     private static final boolean DEBUG = true;
     private static final String TAG = "SpaceWarriorApp";
 
-    private final StartScreen startScreen;
-    private TextureRegion gameOverRegion;
-    private TextureRegion backgroundRegion;
-    private TextureRegion buttonRegion;
-    private SpriteBatch batch;
-    private BitmapFont bitmapFont;
-    private GlyphLayout glyphLayout;
-    private OrthographicCamera camera;
-    private Viewport viewport;
-    private final int finalScore;
-    private boolean useGyroscope;
-    private Stage stage;
-    private ImageButton menuButton;
-    private ShapeRenderer shapeRenderer;
-    private TextureAtlas atlas;
+    private final StartScreen _startScreen;
+    private TextureRegion _gameOverRegion;
+    private TextureRegion _backgroundRegion;
+    private TextureRegion _buttonRegion;
+    private SpriteBatch _batch;
+    private BitmapFont _bitmapFont;
+    private GlyphLayout _glyphLayout;
+    private OrthographicCamera _camera;
+    private Viewport _viewport;
+    private final int _finalScore;
+    private boolean _useGyroscope;
+    private Stage _stage;
+    private ImageButton _menuButton;
+    private ShapeRenderer _shapeRenderer;
+    private TextureAtlas _atlas;
 
-    private float scaleFactor;
-    private float gameOverWidth;
-    private float gameOverHeight;
-    private float drawX;
-    private float drawY;
+    private float _scaleFactor;
+    private float _gameOverWidth;
+    private float _gameOverHeight;
+    private float _drawX;
+    private float _drawY;
 
-    private float menuX, menuY, menuWidth, menuHeight;
+    private float _menuX, _menuY, _menuWidth, _menuHeight;
 
-    private Image restartOverlay;
-    private Image menuOverlay;
+    private Image _restartOverlay;
+    private Image _menuOverlay;
 
-    private Music backgroundMusic;
+    private Music _backgroundMusic;
 
-    private float restartX, restartY, restartWidth, restartHeight;
+    private float _restartX, _restartY, _restartWidth, _restartHeight;
 
     public GameOverScreen(StartScreen startScreen, TextureAtlas atlas, int finalScore, boolean useGyroscope) {
-        this.startScreen = startScreen;
-        this.atlas = atlas;
-        this.finalScore = finalScore;
-        this.useGyroscope = useGyroscope;
+        this._startScreen = startScreen;
+        this._atlas = atlas;
+        this._finalScore = finalScore;
+        this._useGyroscope = useGyroscope;
 
         initializeGameOverScreen();
         initializeCameraAndViewport();
@@ -74,50 +74,50 @@ public class GameOverScreen extends ScreenAdapter {
 
 
     private void initializeGameOverScreen() {
-        this.gameOverRegion = atlas.findRegion("Game Over GUI");
-        this.backgroundRegion = atlas.findRegion("Game Background");
-        this.buttonRegion = atlas.findRegion("Blank Button-2");
+        this._gameOverRegion = _atlas.findRegion("Game Over GUI");
+        this._backgroundRegion = _atlas.findRegion("Game Background");
+        this._buttonRegion = _atlas.findRegion("Blank Button-2");
     }
 
     private void initializeCameraAndViewport() {
         float WORLD_WIDTH = Gdx.graphics.getWidth();
         float WORLD_HEIGHT = Gdx.graphics.getHeight();
 
-        camera = new OrthographicCamera(WORLD_WIDTH, WORLD_HEIGHT);
-        camera.setToOrtho(false, WORLD_WIDTH, WORLD_HEIGHT);
-        viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
+        _camera = new OrthographicCamera(WORLD_WIDTH, WORLD_HEIGHT);
+        _camera.setToOrtho(false, WORLD_WIDTH, WORLD_HEIGHT);
+        _viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, _camera);
 
-        scaleFactor = 0.8f;
-        gameOverWidth = gameOverRegion.getRegionWidth() * scaleFactor;
-        gameOverHeight = gameOverRegion.getRegionHeight() * scaleFactor;
-        drawX = (viewport.getWorldWidth() - gameOverWidth) / 2;
-        drawY = (viewport.getWorldHeight() - gameOverHeight) / 2 ;
+        _scaleFactor = 0.8f;
+        _gameOverWidth = _gameOverRegion.getRegionWidth() * _scaleFactor;
+        _gameOverHeight = _gameOverRegion.getRegionHeight() * _scaleFactor;
+        _drawX = (_viewport.getWorldWidth() - _gameOverWidth) / 2;
+        _drawY = (_viewport.getWorldHeight() - _gameOverHeight) / 2 ;
 
-        menuWidth = 260;
-        menuHeight = 150;
-        menuX = viewport.getWorldWidth() / 2 - menuWidth / 2;
-        menuY = drawY - menuHeight + 70;
+        _menuWidth = 260;
+        _menuHeight = 150;
+        _menuX = _viewport.getWorldWidth() / 2 - _menuWidth / 2;
+        _menuY = _drawY - _menuHeight + 70;
     }
 
     private void initializeRenderers() {
-        batch = new SpriteBatch();
-        bitmapFont = new BitmapFont();
-        bitmapFont.getData().setScale(2f);
-        glyphLayout = new GlyphLayout();
-        shapeRenderer = new ShapeRenderer();
+        _batch = new SpriteBatch();
+        _bitmapFont = new BitmapFont();
+        _bitmapFont.getData().setScale(2f);
+        _glyphLayout = new GlyphLayout();
+        _shapeRenderer = new ShapeRenderer();
     }
 
     private void initializeStage() {
-        stage = new Stage(viewport);
-        Gdx.input.setInputProcessor(stage);
+        _stage = new Stage(_viewport);
+        Gdx.input.setInputProcessor(_stage);
     }
 
     private void initializeBackgroundMusic() {
-        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("ambianceSound1.wav"));
-        backgroundMusic.setLooping(true);
-        backgroundMusic.setVolume(0.9f);
-        backgroundMusic.setPosition(2f);
-        backgroundMusic.play();
+        _backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("ambianceSound1.wav"));
+        _backgroundMusic.setLooping(true);
+        _backgroundMusic.setVolume(0.9f);
+        _backgroundMusic.setPosition(2f);
+        _backgroundMusic.play();
     }
 
 
@@ -131,75 +131,75 @@ public class GameOverScreen extends ScreenAdapter {
 
 
     private void setupGameOverImage() {
-        Image gameOverImage = new Image(new TextureRegionDrawable(gameOverRegion));
-        gameOverImage.setSize(gameOverWidth, gameOverHeight);
-        gameOverImage.setPosition(drawX, drawY);
-        stage.addActor(gameOverImage);
+        Image gameOverImage = new Image(new TextureRegionDrawable(_gameOverRegion));
+        gameOverImage.setSize(_gameOverWidth, _gameOverHeight);
+        gameOverImage.setPosition(_drawX, _drawY);
+        _stage.addActor(gameOverImage);
     }
 
 
     private void setupRestartOverlay() {
-        restartX = drawX + gameOverWidth * 0.21f;
-        restartY = drawY + gameOverHeight * 0.20f;
-        restartWidth = gameOverWidth * 0.605f;
-        restartHeight = gameOverHeight * 0.15f;
+        _restartX = _drawX + _gameOverWidth * 0.21f;
+        _restartY = _drawY + _gameOverHeight * 0.20f;
+        _restartWidth = _gameOverWidth * 0.605f;
+        _restartHeight = _gameOverHeight * 0.15f;
 
-        restartOverlay = new Image(new TextureRegionDrawable(atlas.findRegion("Blank Button")));
-        restartOverlay.setSize(restartWidth, restartHeight);
-        restartOverlay.setPosition(restartX, restartY);
-        restartOverlay.setVisible(false);
-        stage.addActor(restartOverlay);
+        _restartOverlay = new Image(new TextureRegionDrawable(_atlas.findRegion("Blank Button")));
+        _restartOverlay.setSize(_restartWidth, _restartHeight);
+        _restartOverlay.setPosition(_restartX, _restartY);
+        _restartOverlay.setVisible(false);
+        _stage.addActor(_restartOverlay);
     }
 
     private void setupMenuOverlay() {
-        menuOverlay = new Image(new TextureRegionDrawable(atlas.findRegion("Blank Button")));
-        menuOverlay.setSize(menuWidth, menuHeight);
-        menuOverlay.setPosition(menuX, menuY + 100);
-        menuOverlay.setVisible(false);
-        stage.addActor(menuOverlay);
+        _menuOverlay = new Image(new TextureRegionDrawable(_atlas.findRegion("Blank Button")));
+        _menuOverlay.setSize(_menuWidth, _menuHeight);
+        _menuOverlay.setPosition(_menuX, _menuY + 100);
+        _menuOverlay.setVisible(false);
+        _stage.addActor(_menuOverlay);
     }
 
     private void setupMenuButton() {
-        menuButton = new ImageButton(new TextureRegionDrawable(buttonRegion));
-        menuButton.setSize(200, 100);
-        menuButton.setPosition(viewport.getWorldWidth() / 2 - 100, drawY + 45);
+        _menuButton = new ImageButton(new TextureRegionDrawable(_buttonRegion));
+        _menuButton.setSize(200, 100);
+        _menuButton.setPosition(_viewport.getWorldWidth() / 2 - 100, _drawY + 45);
 
-        stage.addActor(menuButton);
+        _stage.addActor(_menuButton);
     }
 
     private void setupMenuTextButton() {
         TextButton.TextButtonStyle textStyle = createTextStyle();
         TextButton menuTextButton = new TextButton("Menu", textStyle);
-        menuTextButton.setSize(menuWidth, menuHeight);
-        menuTextButton.setPosition(menuX, menuY + 100);
+        menuTextButton.setSize(_menuWidth, _menuHeight);
+        menuTextButton.setPosition(_menuX, _menuY + 100);
 
-        TextureRegionDrawable clickedButtonDrawable = new TextureRegionDrawable(atlas.findRegion("Blank Button"));
-        ImageButton.ImageButtonStyle newStyle = new ImageButton.ImageButtonStyle(menuButton.getStyle());
+        TextureRegionDrawable clickedButtonDrawable = new TextureRegionDrawable(_atlas.findRegion("Blank Button"));
+        ImageButton.ImageButtonStyle newStyle = new ImageButton.ImageButtonStyle(_menuButton.getStyle());
         newStyle.imageUp = clickedButtonDrawable;
 
         menuTextButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 Gdx.app.log(TAG, "Changement d'image du bouton...");
-                menuButton.setStyle(newStyle);
-                menuButton.invalidate();
-                stage.act();
+                _menuButton.setStyle(newStyle);
+                _menuButton.invalidate();
+                _stage.act();
 
                 handleMenuReturn();
             }
         });
 
-        stage.addActor(menuTextButton);
+        _stage.addActor(menuTextButton);
     }
 
     private void handleMenuReturn() {
-        useGyroscope = false;
-        Game game = startScreen.getGame();
-        StartScreen newScreen = new StartScreen(startScreen);
+        _useGyroscope = false;
+        Game game = _startScreen.getGame();
+        StartScreen newScreen = new StartScreen(_startScreen);
 
-        if (backgroundMusic != null) {
-            backgroundMusic.dispose();
-            backgroundMusic = null;
+        if (_backgroundMusic != null) {
+            _backgroundMusic.dispose();
+            _backgroundMusic = null;
             Gdx.app.log(TAG, "🎵 Musique d'ambiance supprimée.");
         }
 
@@ -211,24 +211,24 @@ public class GameOverScreen extends ScreenAdapter {
     public void render(float delta) {
         clearScreen();
 
-        batch.setProjectionMatrix(camera.projection);
-        batch.setTransformMatrix(camera.view);
-        batch.begin();
+        _batch.setProjectionMatrix(_camera.projection);
+        _batch.setTransformMatrix(_camera.view);
+        _batch.begin();
 
-        if (backgroundRegion != null) {
-            batch.draw(backgroundRegion, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
+        if (_backgroundRegion != null) {
+            _batch.draw(_backgroundRegion, 0, 0, _viewport.getWorldWidth(), _viewport.getWorldHeight());
         }
 
         TextButton.TextButtonStyle textStyle = createTextStyle();
-        TextButton scoreText = new TextButton("Score: " + finalScore, textStyle);
+        TextButton scoreText = new TextButton("Score: " + _finalScore, textStyle);
         scoreText.setSize(200, 50);
-        scoreText.setPosition(viewport.getWorldWidth() / 2 - 100, viewport.getWorldHeight() / 2 - 100);
-        stage.addActor(scoreText);
+        scoreText.setPosition(_viewport.getWorldWidth() / 2 - 100, _viewport.getWorldHeight() / 2 - 100);
+        _stage.addActor(scoreText);
 
-        batch.end();
+        _batch.end();
 
-        stage.act(delta);
-        stage.draw();
+        _stage.act(delta);
+        _stage.draw();
 
         checkRestartClick();
         drawDebug();
@@ -237,25 +237,25 @@ public class GameOverScreen extends ScreenAdapter {
     private void checkRestartClick() {
         if (Gdx.input.justTouched()) {
             float touchX = Gdx.input.getX();
-            float touchY = viewport.getWorldHeight() - Gdx.input.getY();
+            float touchY = _viewport.getWorldHeight() - Gdx.input.getY();
 
-            if (touchX >= restartX && touchX <= restartX + restartWidth &&
-                touchY >= restartY && touchY <= restartY + restartHeight) {
+            if (touchX >= _restartX && touchX <= _restartX + _restartWidth &&
+                touchY >= _restartY && touchY <= _restartY + _restartHeight) {
 
                 Gdx.app.log(TAG, "Affichage de l'overlay sur Restart...");
 
-                restartOverlay.setVisible(true);
-                stage.act();
+                _restartOverlay.setVisible(true);
+                _stage.act();
 
                 Timer.schedule(new Timer.Task() {
                     @Override
                     public void run() {
-                        if (backgroundMusic != null) {
-                            backgroundMusic.dispose();
-                            backgroundMusic = null;
+                        if (_backgroundMusic != null) {
+                            _backgroundMusic.dispose();
+                            _backgroundMusic = null;
                             Gdx.app.log(TAG, "🎵 Musique d'ambiance supprimée.");
                         }
-                        startScreen.setScreen(new GameScreen(startScreen, useGyroscope));
+                        _startScreen.setScreen(new GameScreen(_startScreen, _useGyroscope));
                     }
                 }, 1f);
             }
@@ -265,13 +265,13 @@ public class GameOverScreen extends ScreenAdapter {
 
 
     private void drawDebug() {
-        shapeRenderer.setProjectionMatrix(camera.combined);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        _shapeRenderer.setProjectionMatrix(_camera.combined);
+        _shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
 
-        shapeRenderer.setColor(Color.RED);
-        shapeRenderer.rect(restartX, restartY, restartWidth, restartHeight);
+        _shapeRenderer.setColor(Color.RED);
+        _shapeRenderer.rect(_restartX, _restartY, _restartWidth, _restartHeight);
 
-        shapeRenderer.end();
+        _shapeRenderer.end();
     }
 
     private void clearScreen() {
@@ -281,20 +281,20 @@ public class GameOverScreen extends ScreenAdapter {
 
     private TextButton.TextButtonStyle createTextStyle() {
         TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
-        style.font = bitmapFont;
+        style.font = _bitmapFont;
         return style;
     }
 
     @Override
     public void dispose() {
         Gdx.input.setInputProcessor(null);
-        batch.dispose();
-        bitmapFont.dispose();
-        stage.dispose();
-        shapeRenderer.dispose();
-        if (backgroundMusic != null) {
-            backgroundMusic.dispose();
-            backgroundMusic = null;
+        _batch.dispose();
+        _bitmapFont.dispose();
+        _stage.dispose();
+        _shapeRenderer.dispose();
+        if (_backgroundMusic != null) {
+            _backgroundMusic.dispose();
+            _backgroundMusic = null;
             Gdx.app.log(TAG, "🎵 Musique d'ambiance supprimée.");
         }
     }
