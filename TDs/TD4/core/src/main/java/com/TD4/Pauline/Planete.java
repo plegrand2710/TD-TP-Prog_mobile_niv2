@@ -20,26 +20,27 @@ public class Planete {
     private float _rotation = 0f;
     private final String _name;
     private final TextureRegion _planetRegion;
-    private float _scaleFactor = 1.0f;
+    private float _scaleFactor;
     private Body _body;
 
-    public Planete(TextureRegion planetRegion, GameScreen gameScreen) {
+    public Planete(TextureRegion planetRegion, GameScreen gameScreen, float scaleFactor) {
         this._planetRegion = planetRegion;
         _gameScreen = gameScreen;
-
+        _scaleFactor = scaleFactor;
         if (planetRegion instanceof TextureAtlas.AtlasRegion) {
             this._name = ((TextureAtlas.AtlasRegion) planetRegion).name;
         } else {
             this._name = "Unknown Planet";
         }
 
-        // Création du corps statique dans Box2D
         createBody();
     }
 
-    /** 🔧 Crée le corps Box2D de la planète */
     private void createBody() {
-        float radius = (_planetRegion.getRegionWidth() / 2f) * _scaleFactor;
+        float textureWidth = _planetRegion.getRegionWidth() * _scaleFactor;
+
+        float radius = ((textureWidth/ 100) / 2f) ;
+        Gdx.app.log("DEBUG", "creation corps planete with Radius: " + radius + " texture width : " + textureWidth + "sacel factor : " + _scaleFactor);
 
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.StaticBody;
@@ -48,27 +49,24 @@ public class Planete {
         _body = _gameScreen.getWorld().createBody(bodyDef);
 
         CircleShape shape = new CircleShape();
-        shape.setRadius(radius / 100f); // Box2D utilise une échelle de 1m = 100px
+        shape.setRadius(radius);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
         fixtureDef.density = 1f;
-        fixtureDef.friction = 0.3f;
-        fixtureDef.restitution = 0.2f; // Rebond léger
+        fixtureDef.friction = 0.1f;
+        fixtureDef.restitution = 0.1f;
 
         _body.createFixture(fixtureDef);
         shape.dispose();
 
         _body.setUserData(this);
         _body.setSleepingAllowed(false);
-
     }
 
-    /** 🚀 Met à jour la position de la planète */
     public void update(float delta) {
         _rotation += 20 * delta;
 
-        // Déplacer la planète de gauche à droite
         float newX = _body.getPosition().x * 100 - (_MAX_SPEED * delta);
         _body.setTransform(newX / 100f, _body.getPosition().y, 0);
     }
@@ -99,9 +97,16 @@ public class Planete {
         );
     }
 
-    public void drawDebug(ShapeRenderer sr) {
-        sr.setColor(Color.YELLOW);
-        sr.circle(_body.getPosition().x * 100, _body.getPosition().y * 100, (_planetRegion.getRegionWidth() * _scaleFactor) / 2);
+    public void drawDebug(ShapeRenderer shapeRenderer) {
+        shapeRenderer.setColor(Color.YELLOW);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
+        float centerX = _body.getPosition().x * 100;
+        float centerY = _body.getPosition().y * 100;
+        float radius = _body.getFixtureList().first().getShape().getRadius() * 100;
+
+        shapeRenderer.circle(centerX, centerY, radius);
+        shapeRenderer.end();
     }
 
     public float getX() {

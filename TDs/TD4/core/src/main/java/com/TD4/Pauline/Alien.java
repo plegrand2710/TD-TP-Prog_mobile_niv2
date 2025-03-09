@@ -57,7 +57,7 @@ public class Alien {
         _body = world.createBody(bodyDef);
 
         CircleShape shape = new CircleShape();
-        shape.setRadius(15f / 100f);
+        shape.setRadius(35f / 100f);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
@@ -138,8 +138,10 @@ public class Alien {
     }
 
     public void drawDebug(ShapeRenderer shapeRenderer) {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(Color.RED);
-        shapeRenderer.circle(_body.getPosition().x * 100, _body.getPosition().y * 100, 15f);
+        shapeRenderer.circle(getX(), getY(), 15f * _scale);
+        shapeRenderer.end();
     }
 
     public float getX() { return _body.getPosition().x * 100; }
@@ -149,11 +151,5 @@ public class Alien {
     public Body getBody() {
         return _body;
     }
-    public TextureRegion getCurrentRegion() {
-        if (_flyAnimation == null) {
-            Gdx.app.error("Alien", "flyAnimation is null!");
-            return null;
-        }
-        return _flyAnimation.getKeyFrame(_animationTimer, true);
-    }
+
 }

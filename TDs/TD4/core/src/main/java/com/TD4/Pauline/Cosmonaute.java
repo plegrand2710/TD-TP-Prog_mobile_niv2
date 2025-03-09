@@ -28,7 +28,6 @@ public class Cosmonaute {
 
     private boolean _isDead = false;
     private boolean _isFiring = false;
-    private float _fireTimer = 0;
     private float _fireAnimationTimer = 0;
     private float _deathTimer = 0;
     private float _animationTimer = 0;
@@ -121,17 +120,6 @@ public class Cosmonaute {
         }
     }
 
-    public void startFiring() {
-        if (_isFiring) return;
-        _isFiring = true;
-        _fireTimer = 0f;
-
-        Missile missile = tirer();
-        _gameScreen.addMissile(missile);
-
-        if (DEBUG) Gdx.app.log(TAG, "🔫 Cosmonaute a commencé à tirer !");
-    }
-
     public Body getBody() {
         return _body;
     }
@@ -163,10 +151,6 @@ public class Cosmonaute {
         _body.setTransform(x / 100f, y / 100f, _body.getAngle());
     }
 
-    public void moveBy(float dx, float dy) {
-        _body.setTransform(_body.getPosition().x + dx / 100f, _body.getPosition().y + dy / 100f, _body.getAngle());
-    }
-
     public float getX() {
         return _body.getPosition().x * 100;
     }
@@ -193,7 +177,10 @@ public class Cosmonaute {
     }
 
     public void drawDebug(ShapeRenderer shapeRenderer) {
+        shapeRenderer.setColor(1, 0, 0, 1);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.circle(getX(), getY(), COLLISION_RADIUS);
+        shapeRenderer.end();
     }
 
     public void updateWithGyro() {
@@ -227,11 +214,6 @@ public class Cosmonaute {
         return new Missile(startX, startY, 400, 0, true, bulletRegion, _gameScreen.getWorld(), _gameScreen);
     }
 
-
-    public void fire() {
-        _isFiring = true;
-        _fireAnimationTimer = 0;
-    }
 
     public void die() {
         if (_isDead) return;

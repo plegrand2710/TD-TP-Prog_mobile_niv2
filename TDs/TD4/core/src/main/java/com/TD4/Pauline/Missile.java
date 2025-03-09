@@ -16,6 +16,8 @@ public class Missile {
     private Body _body;
     private Music _backgroundMusic;
     private boolean _isDestroyed = false;
+    private Music _explosionMusic;
+
 
     public Missile(float x, float y, float speedX, float speedY, boolean fromPlayer, TextureRegion region, World world, GameScreen gameScreen) {
         this._gameScreen = gameScreen;
@@ -45,7 +47,7 @@ public class Missile {
         fixtureDef.density = 0.1f;
         fixtureDef.friction = 0f;
         fixtureDef.restitution = 0f;
-        fixtureDef.isSensor = true; // Le missile devient un capteur (il ne bloque rien)
+        fixtureDef.isSensor = true;
         _body.createFixture(fixtureDef);
         shape.dispose();
 
@@ -63,6 +65,33 @@ public class Missile {
 
     }
 
+    public void die() {
+        if (!_isDestroyed) {
+            _isDestroyed = true;
+            playExplosionSound();
+
+            Timer.schedule(new Timer.Task() {
+                @Override
+                public void run() {
+                    if (_explosionMusic != null) {
+                        _explosionMusic.stop();
+                        _explosionMusic.dispose();
+                        _explosionMusic = null;
+                    }
+                }
+            }, 5);
+            Gdx.app.log("SpaceWarriorApp1", "missile is dying, animation started.");
+        }
+    }
+
+    private void playExplosionSound() {
+        _explosionMusic = Gdx.audio.newMusic(Gdx.files.internal("explosionSound.wav"));
+        _explosionMusic.setLooping(false);
+        _explosionMusic.setVolume(1.2f);
+        _explosionMusic.setPosition(3f);
+        _explosionMusic.play();
+    }
+
     public void draw(SpriteBatch batch) {
         if (_isDestroyed) return;
 
@@ -72,28 +101,12 @@ public class Missile {
         batch.draw(_region, drawX, drawY, _region.getRegionWidth() * _SCALE_FACTOR, _region.getRegionHeight() * _SCALE_FACTOR);
     }
 
-    public void destroy(World world) {
-        Gdx.app.log("SpaceWarriorAppTAG1", "veut detruire.");
-
-        if (!_isDestroyed) {
-            if (_body != null) {
-                world.destroyBody(_body); // Supprime le body du monde Box2D
-                Gdx.app.log("SpaceWarriorAppTAG1", "detruit");
-
-                _body = null; // Empêche les accès à un body supprimé
-            }
-            _isDestroyed = true;
-        }
-    }
-
-    public boolean isDestroyed() {
+    public boolean getisDestroyed() {
         return _isDestroyed;
     }
+
     public Body getBody() {
         return _body;
     }
 
-    public boolean isFromPlayer() {
-        return _fromPlayer;
-    }
 }

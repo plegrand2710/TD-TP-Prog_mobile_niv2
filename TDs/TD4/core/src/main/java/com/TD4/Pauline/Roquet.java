@@ -1,6 +1,7 @@
 package com.TD4.Pauline;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -14,7 +15,8 @@ public class Roquet {
     private float _animationTimer = 0f;
     private float _scaleFactor;
     private static final float _COLLISION_WIDTH = 100f;
-    private static final float _COLLISION_LENGTH = 500f;
+    private static final float _COLLISION_LENGTH = 700f;
+    private Music _backgroundMusic;
 
     private final Animation<TextureRegion> _explosionAnimation;
     private boolean _isExploding = false;
@@ -48,7 +50,7 @@ public class Roquet {
         fixtureDef.shape = shape;
         fixtureDef.density = 1f;
         fixtureDef.friction = 0.1f;
-        fixtureDef.restitution = 0.3f;
+        fixtureDef.restitution = 0.1f;
         fixtureDef.isSensor = false;
 
         _body.createFixture(fixtureDef);
@@ -70,6 +72,11 @@ public class Roquet {
 
     public void explode() {
         if (!_isExploding) {
+            _backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("explosionSound.wav"));
+            _backgroundMusic.setLooping(false);
+            _backgroundMusic.setVolume(1.2f);
+            _backgroundMusic.play();
+
             _isExploding = true;
             _explosionTimer = 0f;
 
@@ -94,18 +101,30 @@ public class Roquet {
         batch.draw(currentFrame, drawX, drawY, width, height);
     }
 
-    public void drawDebug(ShapeRenderer sr) {
-        sr.setColor(Color.PINK);
+    public void drawDebug(ShapeRenderer shapeRenderer) {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
 
         if (!_isExploding) {
-            sr.rect(_body.getPosition().x * 100 - (_COLLISION_LENGTH * _scaleFactor) / 2,
-                _body.getPosition().y * 100 - (_COLLISION_WIDTH * _scaleFactor) / 2,
-                _COLLISION_LENGTH * _scaleFactor, _COLLISION_WIDTH * _scaleFactor);
+            shapeRenderer.setColor(Color.PINK);
+
+            float centerX = _body.getPosition().x * 100;
+            float centerY = _body.getPosition().y * 100;
+            float halfWidth = (_COLLISION_LENGTH * _scaleFactor) / 2;
+            float halfHeight = (_COLLISION_WIDTH * _scaleFactor) / 2;
+
+            shapeRenderer.rect(
+                centerX - halfWidth,
+                centerY - halfHeight,
+                halfWidth * 2,
+                halfHeight * 2
+            );
         } else {
             float explosionRadius = (_COLLISION_WIDTH * 1.5f) / 2;
-            sr.setColor(Color.ORANGE);
-            sr.circle(_body.getPosition().x * 100, _body.getPosition().y * 100, explosionRadius);
+            shapeRenderer.setColor(Color.ORANGE);
+            shapeRenderer.circle(_body.getPosition().x * 100, _body.getPosition().y * 100, explosionRadius);
         }
+
+        shapeRenderer.end();
     }
 
     public boolean isFinishedExploding() {

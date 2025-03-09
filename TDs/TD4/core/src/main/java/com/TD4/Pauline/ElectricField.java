@@ -24,7 +24,6 @@ public class ElectricField {
         createBody(x, y, width, height, world);
     }
 
-    /** 🔧 Crée le corps Box2D pour le champ électrique */
     private void createBody(float x, float y, float width, float height, World world) {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.KinematicBody;
@@ -58,26 +57,35 @@ public class ElectricField {
         float drawX = _body.getPosition().x * 100 - _width / 2;
         float drawY = _body.getPosition().y * 100 - _height / 2;
 
-        batch.draw(currentFrame, drawX, drawY, _width, _height);
-    }
+        batch.draw(
+            currentFrame,
+            drawX, drawY,
+            _width / 2, _height / 2,
+            _width, _height,
+            1, 1,
+            90
+        );    }
 
     public void drawDebug(ShapeRenderer shapeRenderer) {
-        shapeRenderer.setColor(1, 0, 0, 1);
-        shapeRenderer.rect(
-            (_body.getPosition().x * 100) - (_width * 0.6f) / 2,
-            (_body.getPosition().y * 100) - (_height * 0.7f) / 2,
-            _width * 0.6f,
-            _height * 0.7f
-        );
-    }
+        if (_body == null) return;
 
-    /** 📌 Plus besoin de `collidesWith()` → Box2D gère ça via `ContactListener` */
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(1, 1, 0, 1);
+
+        float centerX = _body.getPosition().x * 100;
+        float centerY = _body.getPosition().y * 100;
+        float width = (_width * 0.6f);
+        float height = (_height * 0.7f);
+
+        shapeRenderer.rect(centerX - width / 2, centerY - height / 2, width, height);
+
+        shapeRenderer.end();
+    }
 
     public boolean isOutOfScreen() {
         return _body.getPosition().x * 100 + _width < 0;
     }
 
-    /** 🚀 Supprime le champ du monde physique proprement */
     public void destroy(World world) {
         world.destroyBody(_body);
     }
