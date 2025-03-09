@@ -136,15 +136,8 @@ public class GameScreen extends ScreenAdapter {
         _world = new World(new Vector2(0, 0), true);
         debugRenderer = new Box2DDebugRenderer();
         if (_DEBUG) Gdx.app.log(_TAG, "🌍 Monde Box2D créé avec succès");
-        debugRenderer = new Box2DDebugRenderer();
-        _camera = new OrthographicCamera();
-        _viewport = new FitViewport(_WORLD_WIDTH, _WORLD_HEIGHT, _camera);
         _batch = new SpriteBatch();
-
         _world.setContactListener(new GameScreen.SpaceContactListener());
-
-        _camera.setToOrtho(false, _WORLD_WIDTH, _WORLD_HEIGHT);
-        _camera.update();
 
         if (_DEBUG) Gdx.app.log(_TAG, "✅ Gestionnaire de collisions Box2D activé");
     }
@@ -164,7 +157,7 @@ public class GameScreen extends ScreenAdapter {
     public void show() {
         if (_DEBUG) Gdx.app.log(_TAG, "GameScreen show() called.");
 
-
+        initializeCameraAndViewport();
         initializeRenderers();
         loadTexturesAndAnimations();
         setupCosmonaute();
@@ -385,17 +378,15 @@ public class GameScreen extends ScreenAdapter {
 
         if (Gdx.input.justTouched()) {
             if (!isTouchpadTouched()) {
+                if (_DEBUG) Gdx.app.log(_TAG, "Screen touched");
+
                 Missile missile = _cosmonaute.tirer();
+                if (_DEBUG) Gdx.app.log(_TAG, "missile fired.");
+
                 _playerMissiles.add(missile);
+
                 if (_DEBUG) Gdx.app.log(_TAG, "Screen touched, missile fired.");
             }
-        }
-
-        if (Gdx.input.justTouched() && !isTouchpadTouched()) {
-            Missile missile = _cosmonaute.tirer();
-            _playerMissiles.add(missile);
-            _cosmonaute.startFiring();
-            if (_DEBUG) Gdx.app.log(_TAG, "Screen touched, missile fired.");
         }
 
         updateCosmonaute(delta);
@@ -403,6 +394,7 @@ public class GameScreen extends ScreenAdapter {
         updateScore();
         updateAliens(delta);
         updateMissiles(delta);
+
         updateLevel(delta);
         updateElectricField(delta);
 
@@ -422,36 +414,13 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void cleanDestroyedBodies() {
-        Array<Body> bodiesToRemove = new Array<>();
-
-        for (int i = _playerMissiles.size - 1; i >= 0; i--) {
-            Missile missile = _playerMissiles.get(i);
-            if (missile.isDestroyed()) {
-                bodiesToRemove.add(missile.getBody());
-                _playerMissiles.removeIndex(i);
-            }
-        }
-
-        for (int i = _aliens.size - 1; i >= 0; i--) {
-            Alien alien = _aliens.get(i);
-            if (alien.isFinishedExploding()) {
-                bodiesToRemove.add(alien.getBody());
-                _aliens.removeIndex(i);
-            }
-        }
-
-        for (int i = _enemyRockets.size - 1; i >= 0; i--) {
-            Roquet rocket = _enemyRockets.get(i);
-            if (rocket.isFinishedExploding()) {
-                bodiesToRemove.add(rocket.getBody());
-                _enemyRockets.removeIndex(i);
-            }
-        }
-
-        for (Body body : bodiesToRemove) {
+        for (Body body : toRemove) {
             _world.destroyBody(body);
         }
+        toRemove.clear();
     }
+
+
     private void updateElectricField(float delta) {
         _electricFieldSpawnTimer += delta;
         if (_electricFieldSpawnTimer >= _electricFieldSpawnInterval) {
@@ -572,9 +541,6 @@ public class GameScreen extends ScreenAdapter {
 
 
     private void updateMissiles(float delta) {
-        for (Missile m : _playerMissiles) {
-            m.update(delta);
-        }
 
         Array<Missile> missilesToRemove = new Array<>();
         for (int i = _playerMissiles.size - 1; i >= 0; i--) {
@@ -863,21 +829,25 @@ public class GameScreen extends ScreenAdapter {
                 if (a instanceof Planete || b instanceof Planete) {
                     Gdx.app.log(_TAG1, "💀 Collision: Cosmonaute touché par une Planète !");
                     toRemove.add(((a instanceof Cosmonaute) ? ((Cosmonaute) a).getBody() : ((Cosmonaute) b).getBody()));
+                    triggerDeath();
                 }
 
                 else if (a instanceof ElectricField || b instanceof ElectricField) {
                     Gdx.app.log(_TAG1, "⚡ Collision: Cosmonaute touché par un Champ Électrique !");
                     toRemove.add(((a instanceof Cosmonaute) ? ((Cosmonaute) a).getBody() : ((Cosmonaute) b).getBody()));
+                    triggerDeath();
                 }
 
                 else if (a instanceof Roquet || b instanceof Roquet) {
                     Gdx.app.log(_TAG1, "💥 Collision: Cosmonaute touché par un Roquet !");
                     toRemove.add(((a instanceof Cosmonaute) ? ((Cosmonaute) a).getBody() : ((Cosmonaute) b).getBody()));
+                    triggerDeath();
                 }
 
                 else if (a instanceof Alien || b instanceof Alien) {
                     Gdx.app.log(_TAG1, "👽 Collision: Cosmonaute touché par un Alien !");
                     toRemove.add(((a instanceof Cosmonaute) ? ((Cosmonaute) a).getBody() : ((Cosmonaute) b).getBody()));
+                    triggerDeath();
                 }
             }
         }

@@ -22,6 +22,8 @@ public class Cosmonaute {
     private static final boolean DEBUG = false;
     private static final boolean DEBUG1 = true;
     private static final String TAG = "SpaceWarriorApp";
+    private static final String TAG1 = "SpaceWarriorApp2";
+
     private static final float SCALE_FACTOR = 0.3f;
 
     private boolean _isDead = false;
@@ -44,7 +46,6 @@ public class Cosmonaute {
         _atlas = atlas;
 
         createBody();
-
         ArrayList<TextureRegion> frames = new ArrayList<>();
         loadAnimations(frames);
         _animation = new Animation<>(FRAME_DURATION, frames.toArray(new TextureRegion[0]));
@@ -216,8 +217,20 @@ public class Cosmonaute {
 
     public Missile tirer() {
         _isFiring = true;
+
         TextureRegion bulletRegion = _atlas.findRegion("Bullet (1)");
-        return new Missile(getX(), getY(), 400, 0, true, bulletRegion, _gameScreen.getWorld());
+        float startX = _body.getPosition().x * 100;
+
+        float startY = _body.getPosition().y * 100;
+        if (DEBUG1) Gdx.app.log(TAG1, "position :" + startX + " - " + startY);
+
+        return new Missile(startX, startY, 400, 0, true, bulletRegion, _gameScreen.getWorld(), _gameScreen);
+    }
+
+
+    public void fire() {
+        _isFiring = true;
+        _fireAnimationTimer = 0;
     }
 
     public void die() {
