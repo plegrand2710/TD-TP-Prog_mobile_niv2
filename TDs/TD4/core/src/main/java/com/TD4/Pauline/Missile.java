@@ -63,33 +63,25 @@ public class Missile {
         _backgroundMusic.setVolume(1.2f);
         _backgroundMusic.play();
 
+        Timer.schedule(new Timer.Task() {
+            @Override
+            public void run() {
+                if (_backgroundMusic != null) {
+                    _backgroundMusic.stop();
+                    _backgroundMusic.dispose();
+                    _backgroundMusic = null;
+                    Gdx.app.log("Sound", "🔇 Fire sound destroyed after 4 sec.");
+                }
+            }
+        }, 4f);
     }
 
     public void die() {
         if (!_isDestroyed) {
             _isDestroyed = true;
-            playExplosionSound();
 
-            Timer.schedule(new Timer.Task() {
-                @Override
-                public void run() {
-                    if (_explosionMusic != null) {
-                        _explosionMusic.stop();
-                        _explosionMusic.dispose();
-                        _explosionMusic = null;
-                    }
-                }
-            }, 5);
             Gdx.app.log("SpaceWarriorApp1", "missile is dying, animation started.");
         }
-    }
-
-    private void playExplosionSound() {
-        _explosionMusic = Gdx.audio.newMusic(Gdx.files.internal("explosionSound.wav"));
-        _explosionMusic.setLooping(false);
-        _explosionMusic.setVolume(1.2f);
-        _explosionMusic.setPosition(3f);
-        _explosionMusic.play();
     }
 
     public void draw(SpriteBatch batch) {

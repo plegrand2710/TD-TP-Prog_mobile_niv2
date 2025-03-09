@@ -616,10 +616,11 @@ public class GameScreen extends ScreenAdapter {
                 _enemyRockets.removeIndex(i);
                 if (_DEBUG) Gdx.app.log("SpaceWarriorApp1", "roquet removed after explosion.");
             }
-            else if (_enemyRockets.get(i).getBody().getPosition().x * 100 > _WORLD_WIDTH) {
+            else if (_enemyRockets.get(i).getBody().getPosition().x * 100 > _WORLD_WIDTH ||
+                _enemyRockets.get(i).getBody().getPosition().x * 100 < 0) {
                 _world.destroyBody(_enemyRockets.get(i).getBody());
                 _enemyRockets.removeIndex(i);
-                if (_DEBUG) Gdx.app.log("SpaceWarriorApp1", "roquet removed after leaving screen.");
+                if (_DEBUG) Gdx.app.log("SpaceWarriorApp1", "🚀 Roquet removed after leaving screen (left or right).");
             }
         }
     }

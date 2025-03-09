@@ -105,6 +105,7 @@ public class StartScreen extends ScreenAdapter {
 
         TextButtonStyle buttonStyle = new TextButtonStyle();
         buttonStyle.up = new TextureRegionDrawable(_blankButtonRegion);
+        buttonStyle.down = new TextureRegionDrawable(_atlas.findRegion("Blank Button"));
         buttonStyle.font = _font;
 
         TextButton gyroButton = createTextButton("Gyroscope", buttonStyle, _GYRO_BUTTON_SCALE);
@@ -143,6 +144,18 @@ public class StartScreen extends ScreenAdapter {
             }
         });
     }
+
+//    private void setupMenuButton() {
+//        ImageButton.ImageButtonStyle buttonStyle = new ImageButton.ImageButtonStyle();
+//        buttonStyle.imageUp = new TextureRegionDrawable(_buttonRegion);  // Texture normale
+//        buttonStyle.imageDown = new TextureRegionDrawable(_atlas.findRegion("Blank Button-Pressed")); // Texture quand pressé
+//
+//        _menuButton = new ImageButton(buttonStyle);
+//        _menuButton.setSize(200, 100);
+//        _menuButton.setPosition(_viewport.getWorldWidth() / 2 - 100, _drawY + 45);
+//
+//        _stage.addActor(_menuButton);
+//    }
 
     @Override
     public void hide() {
