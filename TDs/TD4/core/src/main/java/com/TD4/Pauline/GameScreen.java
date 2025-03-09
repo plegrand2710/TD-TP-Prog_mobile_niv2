@@ -500,8 +500,7 @@ public class GameScreen extends ScreenAdapter {
 
     public void setGameOver() {
         if (_DEBUG) Gdx.app.log(_TAG, "Game Over triggered. Transitioning to GameOverScreen.");
-        _startScreen.setScreen(new GameOverScreen(_startScreen, _atlas, _score, _useGyroscope));
-    }
+        _startScreen.setScreen(new GameOverScreen(_startScreen, _atlas, _score, _useGyroscope));    }
 
 
     private void updateCosmonaute(float delta) {

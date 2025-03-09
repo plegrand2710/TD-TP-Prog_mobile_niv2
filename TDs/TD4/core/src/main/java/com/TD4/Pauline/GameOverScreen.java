@@ -2,6 +2,7 @@ package com.TD4.Pauline;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
@@ -23,6 +24,10 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class GameOverScreen extends ScreenAdapter {
+
+    private static final String PREFS_NAME = "game_prefs";
+    private static final String KEY_PSEUDO = "player_pseudo";
+    private static final String KEY_SCORES = "saved_scores";
     private static final boolean DEBUG = true;
     private static final String TAG = "SpaceWarriorApp";
 
@@ -41,7 +46,6 @@ public class GameOverScreen extends ScreenAdapter {
     private ImageButton _menuButton;
     private ShapeRenderer _shapeRenderer;
     private TextureAtlas _atlas;
-
     private float _scaleFactor;
     private float _gameOverWidth;
     private float _gameOverHeight;
@@ -68,6 +72,7 @@ public class GameOverScreen extends ScreenAdapter {
         initializeRenderers();
         initializeStage();
         initializeBackgroundMusic();
+        savePlayerScore();
 
         setupUI();
     }
@@ -127,6 +132,7 @@ public class GameOverScreen extends ScreenAdapter {
         setupMenuOverlay();
         setupMenuButton();
         setupMenuTextButton();
+        setUpHallOfFrameScreen();
     }
 
 
@@ -211,6 +217,20 @@ public class GameOverScreen extends ScreenAdapter {
         });
     }
 
+    private void setUpHallOfFrameScreen(){
+        TextButton.TextButtonStyle textStyle = createTextStyle();
+        TextButton hallOfFameButton = new TextButton("🏆 Hall of Fame", textStyle);
+        hallOfFameButton.setSize(200, 50);
+        hallOfFameButton.setPosition(_gameOverWidth / 2 - 100, 50);
+
+        hallOfFameButton.addListener(event -> {
+            _startScreen.getGame().setScreen(new HallOfFameScreen(_startScreen));
+            return true;
+        });
+
+        _stage.addActor(hallOfFameButton);
+    }
+
 
     public void render(float delta) {
         clearScreen();
@@ -266,7 +286,27 @@ public class GameOverScreen extends ScreenAdapter {
         }
     }
 
+    private void savePlayerScore() {
+        Gdx.app.log(TAG, "🔹 Enregistrement du score...");
 
+        Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
+        String playerName = prefs.getString(KEY_PSEUDO, "Joueur");
+
+        String savedScores = prefs.getString(KEY_SCORES, "");
+
+        String newScore = playerName + " - " + _finalScore;
+
+        if (!savedScores.isEmpty()) {
+            savedScores += ";" + newScore;
+        } else {
+            savedScores = newScore;
+        }
+
+        prefs.putString(KEY_SCORES, savedScores);
+        prefs.flush();
+
+        Gdx.app.log(TAG, "✅ Score enregistré : " + newScore);
+    }
 
     private void drawDebug() {
         _shapeRenderer.setProjectionMatrix(_camera.combined);
@@ -306,6 +346,9 @@ public class GameOverScreen extends ScreenAdapter {
     @Override
     public void hide() {
         Gdx.input.setInputProcessor(null);
+        if (_backgroundMusic != null) {
+            _backgroundMusic.stop();
+        }
         Gdx.app.log(TAG, "🛑 GameOverScreen caché (hide() appelé).");
     }
 }

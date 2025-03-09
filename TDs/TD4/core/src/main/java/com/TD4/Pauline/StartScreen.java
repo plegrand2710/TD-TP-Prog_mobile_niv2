@@ -4,10 +4,12 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
@@ -17,6 +19,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -46,10 +49,13 @@ public class StartScreen extends ScreenAdapter {
     private static final float _GYRO_BUTTON_SCALE = 1.5f;
     private static final float _TOUCHPAD_BUTTON_SCALE = 1.5f;
     private static final float _EXIT_BUTTON_SCALE = 1.2f;
-
     private TextField _pseudoField;
     private Preferences _preferences;
     private Skin _skin;
+
+    private static final String PREFS_NAME = "game_prefs";
+    private static final String KEY_PSEUDO = "player_pseudo";
+    private static final String KEY_SCORE = "saved_scores";
 
     public StartScreen(Game game, TextureAtlas atlas, BitmapFont font,
                        TextureRegion backgroundRegion, TextureRegion logoRegion,
@@ -91,6 +97,7 @@ public class StartScreen extends ScreenAdapter {
         );
     }
 
+
     @Override
     public void show() {
         Image background = new Image(_backgroundRegion);
@@ -109,24 +116,30 @@ public class StartScreen extends ScreenAdapter {
         float logoWidth = _WORLD_WIDTH * 0.2f;
         float logoHeight = logoWidth * ((float) _logoRegion.getRegionHeight() / _logoRegion.getRegionWidth());
         logo.setSize(logoWidth, logoHeight);
-        logo.setPosition(_WORLD_WIDTH / 2, 3 * _WORLD_HEIGHT / 4, Align.center);
+        logo.setPosition(_WORLD_WIDTH / 2, 3.1f * _WORLD_HEIGHT / 4, Align.center);
         _stage.addActor(logo);
 
-        _preferences = Gdx.app.getPreferences("UserPrefs");
+        _preferences = Gdx.app.getPreferences(PREFS_NAME);
 
-        _skin = new Skin(Gdx.files.internal("uiskin.json")); // Assure-toi d'avoir un fichier uiskin.json dans assets/
+        TextField.TextFieldStyle textFieldStyle = new TextField.TextFieldStyle();
+        textFieldStyle.font = _font;
+        textFieldStyle.fontColor = Color.WHITE;
+
+        textFieldStyle.background = new TextureRegionDrawable(_atlas.findRegion("Blank Button"));
+        _skin = new Skin(Gdx.files.internal("uiskin.json"));
 
         Label pseudoLabel = new Label("Pseudo :", _skin);
-        _pseudoField = new TextField("", _skin);
-        _pseudoField.setText(_preferences.getString("pseudo", "")); // Charge le pseudo sauvegardé
-
+        _pseudoField = new TextField("", textFieldStyle);
+        textFieldStyle.background.setLeftWidth(40);
+        _pseudoField.setText(_preferences.getString(KEY_PSEUDO, ""));
+        _pseudoField.setMaxLength(20);
         Table table = new Table();
         table.setFillParent(true);
-        float tablePosition = 1.65f * _WORLD_HEIGHT / 4;
+        float tablePosition = 1.5f * _WORLD_HEIGHT / 4;
         table.top().padTop(tablePosition);
 
         table.add(pseudoLabel).padRight(10);
-        table.add(_pseudoField).width(300).height(50);
+        table.add(_pseudoField).width(250).height(60);
 
         _stage.addActor(table);
 
@@ -136,19 +149,29 @@ public class StartScreen extends ScreenAdapter {
         buttonStyle.font = _font;
 
         TextButton gyroButton = createTextButton("Gyroscope", buttonStyle, _GYRO_BUTTON_SCALE);
-        gyroButton.setPosition(_WORLD_WIDTH / 2 - gyroButton.getWidth() / 2, (tablePosition - gyroButton.getHeight() / 2));
+        gyroButton.setPosition(_WORLD_WIDTH / 2 - gyroButton.getWidth() / 2, (tablePosition - gyroButton.getHeight() / 2) +60);
         _stage.addActor(gyroButton);
 
         TextButton touchPadButton = createTextButton("TouchPad", buttonStyle, _TOUCHPAD_BUTTON_SCALE);
-        touchPadButton.setPosition(_WORLD_WIDTH / 2 - touchPadButton.getWidth() / 2, (gyroButton.getY() - touchPadButton.getHeight() * 1.5f)-20);
+        touchPadButton.setPosition(_WORLD_WIDTH / 2 - touchPadButton.getWidth() / 2, (gyroButton.getY() - touchPadButton.getHeight())-20);
         _stage.addActor(touchPadButton);
 
         ImageButton exitButton = createImageButton(_exitButtonRegion, _EXIT_BUTTON_SCALE);
         exitButton.setPosition(
             logo.getX() + logo.getWidth() + exitButton.getWidth() - 100,
-            logo.getY() + logo.getHeight() + exitButton.getHeight() - 110
+            logo.getY() + logo.getHeight() + exitButton.getHeight() - 125
         );
         _stage.addActor(exitButton);
+
+        TextButton hallOfFameButton = createTextButton("Hall of Fame", buttonStyle, _GYRO_BUTTON_SCALE);
+        hallOfFameButton.setPosition(_WORLD_WIDTH / 2 - hallOfFameButton.getWidth() / 2, (touchPadButton.getY() - hallOfFameButton.getHeight())-20);
+
+        hallOfFameButton.addListener(event -> {
+            _game.setScreen(new HallOfFameScreen(this));
+            return true;
+        });
+
+        _stage.addActor(hallOfFameButton);
 
         gyroButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
             @Override
@@ -178,9 +201,26 @@ public class StartScreen extends ScreenAdapter {
 
     }
 
-    private void savePseudo(){
-        _preferences.putString("pseudo", _pseudoField.getText());
-        _preferences.flush();
+    public void savePseudo() {
+        Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
+        prefs.putString(KEY_PSEUDO, _pseudoField.getText().trim());
+        prefs.flush();
+    }
+
+    public String getSavedPseudo() {
+        Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
+        return prefs.getString(KEY_PSEUDO, "Joueur");
+    }
+
+    public void saveScore(int score) {
+        Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
+        prefs.putInteger(KEY_SCORE, score);
+        prefs.flush();
+    }
+
+    public int getSavedScore() {
+        Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
+        return prefs.getInteger(KEY_SCORE, 0);
     }
     @Override
     public void hide() {

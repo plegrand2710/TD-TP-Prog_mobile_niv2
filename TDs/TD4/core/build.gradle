@@ -9,3 +9,9 @@ dependencies {
     implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"
   }
 }
+
+dependencies {
+    implementation "com.badlogicgames.gdx:gdx:1.11.0"
+    implementation "com.badlogicgames.gdx:gdx-box2d:1.11.0"
+    implementation "org.xerial:sqlite-jdbc:3.34.0" // SQLite pour LibGDX
+}
