@@ -2,6 +2,7 @@ package com.TD4.Pauline;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -10,8 +11,12 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -41,6 +46,10 @@ public class StartScreen extends ScreenAdapter {
     private static final float _GYRO_BUTTON_SCALE = 1.5f;
     private static final float _TOUCHPAD_BUTTON_SCALE = 1.5f;
     private static final float _EXIT_BUTTON_SCALE = 1.2f;
+
+    private TextField _pseudoField;
+    private Preferences _preferences;
+    private Skin _skin;
 
     public StartScreen(Game game, TextureAtlas atlas, BitmapFont font,
                        TextureRegion backgroundRegion, TextureRegion logoRegion,
@@ -103,28 +112,50 @@ public class StartScreen extends ScreenAdapter {
         logo.setPosition(_WORLD_WIDTH / 2, 3 * _WORLD_HEIGHT / 4, Align.center);
         _stage.addActor(logo);
 
+        _preferences = Gdx.app.getPreferences("UserPrefs");
+
+        _skin = new Skin(Gdx.files.internal("uiskin.json")); // Assure-toi d'avoir un fichier uiskin.json dans assets/
+
+        Label pseudoLabel = new Label("Pseudo :", _skin);
+        _pseudoField = new TextField("", _skin);
+        _pseudoField.setText(_preferences.getString("pseudo", "")); // Charge le pseudo sauvegardé
+
+        Table table = new Table();
+        table.setFillParent(true);
+        float tablePosition = 1.65f * _WORLD_HEIGHT / 4;
+        table.top().padTop(tablePosition);
+
+        table.add(pseudoLabel).padRight(10);
+        table.add(_pseudoField).width(300).height(50);
+
+        _stage.addActor(table);
+
         TextButtonStyle buttonStyle = new TextButtonStyle();
         buttonStyle.up = new TextureRegionDrawable(_blankButtonRegion);
         buttonStyle.down = new TextureRegionDrawable(_atlas.findRegion("Blank Button"));
         buttonStyle.font = _font;
 
         TextButton gyroButton = createTextButton("Gyroscope", buttonStyle, _GYRO_BUTTON_SCALE);
-        gyroButton.setPosition(_WORLD_WIDTH / 2 - gyroButton.getWidth() / 2, _WORLD_HEIGHT / 2 - gyroButton.getHeight() / 2);
+        gyroButton.setPosition(_WORLD_WIDTH / 2 - gyroButton.getWidth() / 2, (tablePosition - gyroButton.getHeight() / 2));
         _stage.addActor(gyroButton);
 
         TextButton touchPadButton = createTextButton("TouchPad", buttonStyle, _TOUCHPAD_BUTTON_SCALE);
-        touchPadButton.setPosition(_WORLD_WIDTH / 2 - touchPadButton.getWidth() / 2, gyroButton.getY() - touchPadButton.getHeight() * 1.5f);
+        touchPadButton.setPosition(_WORLD_WIDTH / 2 - touchPadButton.getWidth() / 2, (gyroButton.getY() - touchPadButton.getHeight() * 1.5f)-20);
         _stage.addActor(touchPadButton);
 
         ImageButton exitButton = createImageButton(_exitButtonRegion, _EXIT_BUTTON_SCALE);
-        exitButton.setPosition(_WORLD_WIDTH / 2 - exitButton.getWidth() / 2, touchPadButton.getY() - exitButton.getHeight() * 1.5f);
+        exitButton.setPosition(
+            logo.getX() + logo.getWidth() + exitButton.getWidth() - 100,
+            logo.getY() + logo.getHeight() + exitButton.getHeight() - 110
+        );
         _stage.addActor(exitButton);
 
         gyroButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
             @Override
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
                 if (_DEBUG) Gdx.app.log(_TAG, "Gyroscope button tapped.");
-        _game.setScreen(new GameScreen(StartScreen.this, true));
+                savePseudo();
+                _game.setScreen(new GameScreen(StartScreen.this, true));
             }
         });
 
@@ -132,6 +163,7 @@ public class StartScreen extends ScreenAdapter {
             @Override
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
                 if (_DEBUG) Gdx.app.log(_TAG, "TouchPad button tapped.");
+                savePseudo();
                 _game.setScreen(new GameScreen(StartScreen.this, false));
             }
         });
@@ -143,20 +175,13 @@ public class StartScreen extends ScreenAdapter {
                 Gdx.app.exit();
             }
         });
+
     }
 
-//    private void setupMenuButton() {
-//        ImageButton.ImageButtonStyle buttonStyle = new ImageButton.ImageButtonStyle();
-//        buttonStyle.imageUp = new TextureRegionDrawable(_buttonRegion);  // Texture normale
-//        buttonStyle.imageDown = new TextureRegionDrawable(_atlas.findRegion("Blank Button-Pressed")); // Texture quand pressé
-//
-//        _menuButton = new ImageButton(buttonStyle);
-//        _menuButton.setSize(200, 100);
-//        _menuButton.setPosition(_viewport.getWorldWidth() / 2 - 100, _drawY + 45);
-//
-//        _stage.addActor(_menuButton);
-//    }
-
+    private void savePseudo(){
+        _preferences.putString("pseudo", _pseudoField.getText());
+        _preferences.flush();
+    }
     @Override
     public void hide() {
         Gdx.app.log(_TAG, "🛑 StartScreen caché (hide() appelé).");
