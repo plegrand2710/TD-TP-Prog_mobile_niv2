@@ -133,16 +133,7 @@ public class Roquet {
         batch.draw(explosionFrame, drawX, drawY, explosionSize, explosionSize);
     }
 
-    /** ✅ Vérifie la collision avec un missile */
-    public boolean collidesWith(Missile missile) {
-        boolean collision = _gameScreen.checkCollision(_body, missile.getBody());
-        if (collision) {
-            explode();
-        }
-        return collision;
-    }
 
-    /** 🗑️ Supprime proprement le missile de Box2D */
     public void destroy(World world) {
         if (_body != null) {
             world.destroyBody(_body);
