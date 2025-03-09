@@ -4,57 +4,106 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Circle;
-import com.badlogic.gdx.utils.Timer;
+import com.badlogic.gdx.physics.box2d.*;
 
 public class Missile {
-    private float _x, _y, _speedX, _speedY;
     private final boolean _fromPlayer;
     private final TextureRegion _region;
-    private final Circle _collisionCircle;
-    private static final float _RADIUS = 10f;
     private static final float _SCALE_FACTOR = 0.5f;
-    private Music _backgroundMusic;
+    private static final float _RADIUS = 10f;
 
-    public Missile(float x, float y, float speedX, float speedY, boolean fromPlayer, TextureRegion region) {
-        this._x = x;
-        this._y = y;
-        this._speedX = speedX;
-        this._speedY = speedY;
+    private Body _body;
+    private Music _backgroundMusic;
+    private boolean _isDestroyed = false;
+
+    public Missile(float x, float y, float speedX, float speedY, boolean fromPlayer, TextureRegion region, World world) {
         this._fromPlayer = fromPlayer;
         this._region = region;
-        _collisionCircle = new Circle(x, y, _RADIUS);
+
+        createBody(x, y, speedX, speedY, world);
+        playFireSound();
+    }
+
+    private void createBody(float x, float y, float speedX, float speedY, World world) {
+        BodyDef bodyDef = new BodyDef();
+        bodyDef.type = BodyDef.BodyType.DynamicBody;
+        bodyDef.position.set(x / 100f, y / 100f);
+        bodyDef.bullet = true;
+
+        _body = world.createBody(bodyDef);
+
+        CircleShape shape = new CircleShape();
+        shape.setRadius(_RADIUS / 100f);
+
+        FixtureDef fixtureDef = new FixtureDef();
+        fixtureDef.shape = shape;
+        fixtureDef.density = 0.1f;
+        fixtureDef.friction = 0f;
+        fixtureDef.restitution = 0f;
+        fixtureDef.isSensor = true;
+
+        _body.createFixture(fixtureDef);
+        shape.dispose();
+
+        _body.setLinearVelocity(speedX / 100f, speedY / 100f);
+        _body.setUserData(this);
+        _body.setSleepingAllowed(false);
+
+    }
+
+    private void playFireSound() {
         _backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("fireSound.wav"));
         _backgroundMusic.setLooping(false);
         _backgroundMusic.setVolume(1.2f);
         _backgroundMusic.play();
 
-        Timer.schedule(new Timer.Task() {
-            @Override
-            public void run() {
+        Gdx.app.postRunnable(() -> {
+            try {
+                Thread.sleep(5000);
                 if (_backgroundMusic != null) {
                     _backgroundMusic.stop();
                     _backgroundMusic.dispose();
                     _backgroundMusic = null;
                 }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        }, 5);
+        });
     }
 
     public void update(float delta) {
-        _x += _speedX * delta;
-        _y += _speedY * delta;
-        _collisionCircle.setPosition(_x, _y);
+        if (_isDestroyed) return;
+
+        float posX = _body.getPosition().x * 100;
+        float posY = _body.getPosition().y * 100;
+
+        if (posX > Gdx.graphics.getWidth() || posX < 0 || posY > Gdx.graphics.getHeight() || posY < 0) {
+            destroy(_body.getWorld());
+        }
     }
 
     public void draw(SpriteBatch batch) {
-        float width = _region.getRegionWidth() * _SCALE_FACTOR;
-        float height = _region.getRegionHeight() * _SCALE_FACTOR;
-        batch.draw(_region, _x - width / 2f, _y - height / 2f, width, height);
+        if (_isDestroyed) return;
+
+        float drawX = _body.getPosition().x * 100 - (_region.getRegionWidth() * _SCALE_FACTOR) / 2;
+        float drawY = _body.getPosition().y * 100 - (_region.getRegionHeight() * _SCALE_FACTOR) / 2;
+
+        batch.draw(_region, drawX, drawY, _region.getRegionWidth() * _SCALE_FACTOR, _region.getRegionHeight() * _SCALE_FACTOR);
     }
 
-    public Circle getCollisionCircle() {
-        return _collisionCircle;
+    /** 🚀 Supprime le missile du monde Box2D proprement */
+    public void destroy(World world) {
+        if (!_isDestroyed) {
+            world.destroyBody(_body);
+            _isDestroyed = true;
+        }
+    }
+
+    public boolean isDestroyed() {
+        return _isDestroyed;
+    }
+    public Body getBody() {
+        return _body;
     }
 
     public boolean isFromPlayer() {

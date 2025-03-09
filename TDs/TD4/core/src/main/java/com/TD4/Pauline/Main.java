@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.physics.box2d.Box2D;
 
 public class Main extends Game {
     public static final boolean _DEBUG = true;
@@ -16,6 +17,8 @@ public class Main extends Game {
 
     @Override
     public void create() {
+        Box2D.init();
+
         Gdx.app.log(_TAG, "create() called. Starting application.");
 
         _atlas = new TextureAtlas(Gdx.files.internal("space_warrior.atlas"));
