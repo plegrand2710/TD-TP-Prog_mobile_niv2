@@ -9,10 +9,13 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -59,21 +62,43 @@ public class HallOfFameScreen extends ScreenAdapter {
             Gdx.app.error(TAG, "❌ ERREUR: Impossible de charger 'uiskin.json' !");
         }
 
-        Table table = new Table();
-        table.setFillParent(true);
-        _stage.addActor(table);
+        Image backgroundImage = new Image(new TextureRegionDrawable(_startScreen.getAtlas().findRegion("Background-layer")));
+        backgroundImage.setSize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        _stage.addActor(backgroundImage);
 
-        Label title = new Label("🏆 Hall of Fame 🏆", _skin, "default");
+        Table rootTable = new Table();
+        rootTable.setFillParent(true);
+        _stage.addActor(rootTable);
+
+
+
+        Label title = new Label("Hall of Fame", _skin, "default");
         title.setFontScale(2f);
         title.setColor(Color.GOLD);
-        table.add(title).padBottom(20);
-        table.row();
+        rootTable.add(title).padBottom(10).padTop(40);
+        rootTable.row();
 
-        if (DEBUG) Gdx.app.log(TAG, "📥 Chargement des scores...");
-        loadScores(table);
-        if (DEBUG) Gdx.app.log(TAG, "✅ Scores chargés avec succès.");
+        Table scoreTable = new Table();
+        ScrollPane scrollPane = new ScrollPane(scoreTable, _skin);
+        scrollPane.setScrollingDisabled(true, false);
+        scrollPane.setFadeScrollBars(false);
+        scrollPane.setOverscroll(false, true);
+        scrollPane.setStyle(new ScrollPane.ScrollPaneStyle());
 
-        TextButton backButton = new TextButton("Retour", _skin);
+        loadScores(scoreTable);
+
+        rootTable.add(scrollPane).expand().fill().height(500);
+        rootTable.row().padTop(10);
+
+        TextButton.TextButtonStyle backButtonStyle = new TextButton.TextButtonStyle();
+        backButtonStyle.up = new TextureRegionDrawable(_startScreen.getAtlas().findRegion("Blank Button-2"));
+        backButtonStyle.down = new TextureRegionDrawable(_startScreen.getAtlas().findRegion("Blank Button"));
+        BitmapFont smallFont = new BitmapFont();
+        smallFont.getData().setScale(1.5f);
+        backButtonStyle.font = smallFont;
+
+        TextButton backButton = new TextButton("Retour", backButtonStyle);
+
         backButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
@@ -91,8 +116,7 @@ public class HallOfFameScreen extends ScreenAdapter {
             }
         });
 
-        table.row().padTop(20);
-        table.add(backButton);
+        rootTable.add(backButton).width(180).height(60).padTop(20).padBottom(20);
 
         if (DEBUG) Gdx.app.log(TAG, "✅ Hall of Fame affiché avec succès !");
     }
@@ -125,7 +149,7 @@ public class HallOfFameScreen extends ScreenAdapter {
 
     private Array<String> getSavedScores() {
         Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
-        String rawScores = prefs.getString(KEY_SCORES, ""); // Récupère la liste de scores
+        String rawScores = prefs.getString(KEY_SCORES, "");
 
         Array<String> scores = new Array<>();
         if (!rawScores.isEmpty()) {
@@ -135,7 +159,6 @@ public class HallOfFameScreen extends ScreenAdapter {
             }
         }
 
-        // Tri du plus grand au plus petit
         scores.sort(Comparator.comparingInt(s -> -Integer.parseInt(s.split(" - ")[1])));
         return scores;
     }
@@ -150,7 +173,6 @@ public class HallOfFameScreen extends ScreenAdapter {
 
     @Override
     public void hide() {
-        // Laisser le Game appeler hide() puis dispose() pour nettoyer l'écran
         dispose();
     }
 

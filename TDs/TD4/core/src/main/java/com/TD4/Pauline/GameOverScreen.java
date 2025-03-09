@@ -131,7 +131,6 @@ public class GameOverScreen extends ScreenAdapter {
         setupRestartOverlay();
         setupMenuOverlay();
         setupMenuButton();
-        setupMenuTextButton();
         setUpHallOfFrameScreen();
     }
 
@@ -166,36 +165,24 @@ public class GameOverScreen extends ScreenAdapter {
     }
 
     private void setupMenuButton() {
-        _menuButton = new ImageButton(new TextureRegionDrawable(_buttonRegion));
-        _menuButton.setSize(200, 100);
-        _menuButton.setPosition(_viewport.getWorldWidth() / 2 - 100, _drawY + 45);
+        TextButton.TextButtonStyle textStyle = new TextButton.TextButtonStyle();
+        textStyle.up = new TextureRegionDrawable(_atlas.findRegion("Blank Button-2"));
+        textStyle.down = new TextureRegionDrawable(_atlas.findRegion("Blank Button"));
+        textStyle.font = _bitmapFont;
 
-        _stage.addActor(_menuButton);
-    }
+        TextButton menuButton = new TextButton("Menu", textStyle);
+        menuButton.setSize(150, 75);
+        menuButton.setPosition(_viewport.getWorldWidth() / 2 - 200, _drawY + 55);
 
-    private void setupMenuTextButton() {
-        TextButton.TextButtonStyle textStyle = createTextStyle();
-        TextButton menuTextButton = new TextButton("Menu", textStyle);
-        menuTextButton.setSize(_menuWidth, _menuHeight);
-        menuTextButton.setPosition(_menuX, _menuY + 100);
-
-        TextureRegionDrawable clickedButtonDrawable = new TextureRegionDrawable(_atlas.findRegion("Blank Button"));
-        ImageButton.ImageButtonStyle newStyle = new ImageButton.ImageButtonStyle(_menuButton.getStyle());
-        newStyle.imageUp = clickedButtonDrawable;
-
-        menuTextButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
+        menuButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override
             public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
-                Gdx.app.log(TAG, "Changement d'image du bouton...");
-                _menuButton.setStyle(newStyle);
-                _menuButton.invalidate();
-                _stage.act();
-
+                Gdx.app.log(TAG, "✅ Menu Button Clicked - Returning to StartScreen");
                 handleMenuReturn();
             }
         });
 
-        _stage.addActor(menuTextButton);
+        _stage.addActor(menuButton);
     }
 
     private void handleMenuReturn() {
@@ -217,11 +204,21 @@ public class GameOverScreen extends ScreenAdapter {
         });
     }
 
-    private void setUpHallOfFrameScreen(){
-        TextButton.TextButtonStyle textStyle = createTextStyle();
-        TextButton hallOfFameButton = new TextButton("🏆 Hall of Fame", textStyle);
-        hallOfFameButton.setSize(200, 50);
-        hallOfFameButton.setPosition(_gameOverWidth / 2 - 100, 50);
+    private void setUpHallOfFrameScreen() {
+        float buttonWidth = 230;
+        float buttonHeight = 75;
+
+        float hallOfFameX = _viewport.getWorldWidth() / 2 - 15;
+        float hallOfFameY = _drawY + 55;
+
+        TextButton.TextButtonStyle textStyle = new TextButton.TextButtonStyle();
+        textStyle.up = new TextureRegionDrawable(_atlas.findRegion("Blank Button-2"));
+        textStyle.down = new TextureRegionDrawable(_atlas.findRegion("Blank Button-Pressed"));
+        textStyle.font = _bitmapFont;
+
+        TextButton hallOfFameButton = new TextButton("Hall of Fame", textStyle);
+        hallOfFameButton.setSize(buttonWidth, buttonHeight);
+        hallOfFameButton.setPosition(hallOfFameX, hallOfFameY);
 
         hallOfFameButton.addListener(event -> {
             _startScreen.getGame().setScreen(new HallOfFameScreen(_startScreen));
@@ -230,7 +227,6 @@ public class GameOverScreen extends ScreenAdapter {
 
         _stage.addActor(hallOfFameButton);
     }
-
 
     public void render(float delta) {
         clearScreen();
