@@ -196,6 +196,7 @@ public class GameOverScreen extends ScreenAdapter {
         _useGyroscope = false;
         Game game = _startScreen.getGame();
         StartScreen newScreen = new StartScreen(_startScreen);
+        Gdx.input.setInputProcessor(null);
 
         if (_backgroundMusic != null) {
             _backgroundMusic.dispose();
@@ -203,8 +204,11 @@ public class GameOverScreen extends ScreenAdapter {
             Gdx.app.log(TAG, "🎵 Musique d'ambiance supprimée.");
         }
 
-        Gdx.app.postRunnable(() -> game.setScreen(newScreen));
-        Gdx.app.log(TAG, "✅ Retour à StartScreen !");
+        Gdx.app.postRunnable(() -> {
+            game.setScreen(newScreen);
+            Gdx.input.setInputProcessor(newScreen.getStage());
+            Gdx.app.log(TAG, "✅ Retour à StartScreen !");
+        });
     }
 
 

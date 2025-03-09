@@ -152,6 +152,10 @@ public class StartScreen extends ScreenAdapter {
             _backgroundMusic.stop();
         }
     }
+
+    public Stage getStage(){
+        return _stage;
+    }
     private TextButton createTextButton(String text, TextButtonStyle style, float scaleFactor) {
         float buttonWidth = (_blankButtonRegion.getRegionWidth() / 3f) * scaleFactor;
         float buttonHeight = (_blankButtonRegion.getRegionHeight() / 3f) * scaleFactor;
