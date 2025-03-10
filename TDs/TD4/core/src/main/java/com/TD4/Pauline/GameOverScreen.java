@@ -251,7 +251,7 @@ public class GameOverScreen extends ScreenAdapter {
         _stage.draw();
 
         checkRestartClick();
-        drawDebug();
+        //drawDebug();
     }
 
     private void checkRestartClick() {

@@ -7,6 +7,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
@@ -119,6 +120,12 @@ public class GameScreen extends ScreenAdapter {
 
     private Box2DDebugRenderer debugRenderer;
 
+    private Array<TextureRegion> _backgroundLayers;
+    private float[] _backgroundOffsets;
+    private float[] _backgroundSpeeds;
+
+    private static final float BACKGROUND_SCROLL_SPEED = 50f;
+
     public GameScreen(StartScreen startScreen, boolean useGyroscope) {
         this._startScreen = startScreen;
         this._useGyroscope = useGyroscope;
@@ -157,7 +164,7 @@ public class GameScreen extends ScreenAdapter {
     @Override
     public void show() {
         if (_DEBUG) Gdx.app.log(_TAG, "GameScreen show() called.");
-
+        //loadParallaxBackground();
         initializeCameraAndViewport();
         initializeRenderers();
         loadTexturesAndAnimations();
@@ -188,7 +195,7 @@ public class GameScreen extends ScreenAdapter {
         _atlas = new TextureAtlas(Gdx.files.internal("space_warrior.atlas"));
         if (_DEBUG) Gdx.app.log(_TAG, "Atlas loaded from space_warrior.atlas");
 
-        loadBackground();
+        loadParallaxBackground();
         loadPlanets();
         loadElectricFields();
         loadAliens();
@@ -196,9 +203,29 @@ public class GameScreen extends ScreenAdapter {
         loadMiscTextures();
     }
 
-    private void loadBackground() {
-        _backgroundRegion = _atlas.findRegion("Background-layer");
-        if (_backgroundRegion == null && _DEBUG) Gdx.app.log(_TAG, "Failed to load background region!");
+    private void loadParallaxBackground() {
+        _backgroundLayers = new Array<>();
+        _backgroundOffsets = new float[6];
+        _backgroundSpeeds = new float[]{0.2f, 0.4f, 0.6f, 0.8f, 1.0f, 1.2f};
+
+        String[] backgroundFiles = {
+            "moon/moon_sky.png",
+            "moon/moon_back.png",
+            "moon/moon_mid.png",
+            "moon/moon_earth.png",
+            "moon/moon_front.png",
+            "moon/moon_floor.png"
+        };
+
+        for (int i = 0; i < backgroundFiles.length; i++) {
+            Texture texture = new Texture(Gdx.files.internal(backgroundFiles[i]));
+            texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.ClampToEdge); // Répétition horizontale
+            _backgroundLayers.add(new TextureRegion(texture));
+        }
+
+        if (_backgroundLayers.size == 0) {
+            Gdx.app.error(_TAG, "❌ Aucune image de fond chargée !");
+        }
     }
 
     private void loadPlanets() {
@@ -447,7 +474,7 @@ public class GameScreen extends ScreenAdapter {
                 if (_DEBUG) Gdx.app.log(_TAG, "Screen touched, missile fired.");
             }
         }
-
+        updateBackground(delta);
         updateCosmonaute(delta);
         updatePlanetes(delta);
         updateScore();
@@ -737,13 +764,33 @@ public class GameScreen extends ScreenAdapter {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
     }
 
+    private void updateBackground(float delta) {
+        for (int i = 0; i < _backgroundLayers.size; i++) {
+            _backgroundOffsets[i] -= _backgroundSpeeds[i] * delta * 100;
+
+            // Utiliser la largeur de l'image réelle pour le repositionnement
+            float imageWidth = _backgroundLayers.get(i).getRegionWidth();
+
+            // Si toute l'image est sortie, repositionner
+            if (_backgroundOffsets[i] <= -imageWidth) {
+                _backgroundOffsets[i] += imageWidth;
+            }
+        }
+    }
+
+    private void drawBackground() {
+        for (int i = 0; i < _backgroundLayers.size; i++) {
+            float imageWidth = _backgroundLayers.get(i).getRegionWidth();
+            _batch.draw(_backgroundLayers.get(i), _backgroundOffsets[i], 0, imageWidth, _WORLD_HEIGHT);
+            _batch.draw(_backgroundLayers.get(i), _backgroundOffsets[i] + imageWidth, 0, imageWidth, _WORLD_HEIGHT);
+        }
+    }
+
     private void draw() {
         _batch.setProjectionMatrix(_camera.projection);
         _batch.setTransformMatrix(_camera.view);
         _batch.begin();
-
-        _batch.draw(_backgroundRegion, 0, 0, _WORLD_WIDTH, _WORLD_HEIGHT);
-
+        drawBackground();
         for (Planete p : _planetes) {
             p.draw(_batch);
         }
