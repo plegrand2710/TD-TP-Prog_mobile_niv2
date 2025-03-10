@@ -53,6 +53,13 @@ public class StartScreen extends ScreenAdapter {
     private Preferences _preferences;
     private Skin _skin;
 
+    private float _tablePosition;
+    private Image _logo;
+    private TextButton _gyroButton;
+    private TextButton _touchPadButton;
+    private ImageButton _exitButton;
+    private TextButton _hallOfFameButton;
+
     private static final String PREFS_NAME = "game_prefs";
     private static final String KEY_PSEUDO = "player_pseudo";
     private static final String KEY_SCORE = "saved_scores";
@@ -97,13 +104,24 @@ public class StartScreen extends ScreenAdapter {
         );
     }
 
-
     @Override
     public void show() {
         Image background = new Image(_backgroundRegion);
         background.setSize(_WORLD_WIDTH, _WORLD_HEIGHT);
         _stage.addActor(background);
 
+        setUpGuiBox();
+
+        setUpLogo();
+
+        setUpTextField();
+
+        setUpButtons();
+
+        setUpListeners();
+    }
+
+    private void setUpGuiBox(){
         Image guiBox = new Image(_guiBoxRegion);
         float guiBoxScaleFactor = 0.35f;
         float guiBoxWidth = _WORLD_WIDTH * guiBoxScaleFactor;
@@ -111,14 +129,18 @@ public class StartScreen extends ScreenAdapter {
         guiBox.setSize(guiBoxWidth, guiBoxHeight);
         guiBox.setPosition(_WORLD_WIDTH / 2 - guiBoxWidth / 2, (_WORLD_HEIGHT - guiBoxHeight) / 2);
         _stage.addActor(guiBox);
+    }
 
-        Image logo = new Image(_logoRegion);
+    private void setUpLogo(){
+        _logo = new Image(_logoRegion);
         float logoWidth = _WORLD_WIDTH * 0.2f;
         float logoHeight = logoWidth * ((float) _logoRegion.getRegionHeight() / _logoRegion.getRegionWidth());
-        logo.setSize(logoWidth, logoHeight);
-        logo.setPosition(_WORLD_WIDTH / 2, 3.1f * _WORLD_HEIGHT / 4, Align.center);
-        _stage.addActor(logo);
+        _logo.setSize(logoWidth, logoHeight);
+        _logo.setPosition(_WORLD_WIDTH / 2, 3.1f * _WORLD_HEIGHT / 4, Align.center);
+        _stage.addActor(_logo);
+    }
 
+    private void setUpTextField(){
         _preferences = Gdx.app.getPreferences(PREFS_NAME);
 
         TextField.TextFieldStyle textFieldStyle = new TextField.TextFieldStyle();
@@ -135,45 +157,46 @@ public class StartScreen extends ScreenAdapter {
         _pseudoField.setMaxLength(20);
         Table table = new Table();
         table.setFillParent(true);
-        float tablePosition = 1.5f * _WORLD_HEIGHT / 4;
-        table.top().padTop(tablePosition);
+        _tablePosition = 1.5f * _WORLD_HEIGHT / 4;
+        table.top().padTop(_tablePosition);
 
         table.add(pseudoLabel).padRight(10);
         table.add(_pseudoField).width(250).height(60);
 
         _stage.addActor(table);
 
+    }
+
+    private void setUpButtons(){
         TextButtonStyle buttonStyle = new TextButtonStyle();
         buttonStyle.up = new TextureRegionDrawable(_blankButtonRegion);
         buttonStyle.down = new TextureRegionDrawable(_atlas.findRegion("Blank Button"));
         buttonStyle.font = _font;
 
-        TextButton gyroButton = createTextButton("Gyroscope", buttonStyle, _GYRO_BUTTON_SCALE);
-        gyroButton.setPosition(_WORLD_WIDTH / 2 - gyroButton.getWidth() / 2, (tablePosition - gyroButton.getHeight() / 2) +60);
-        _stage.addActor(gyroButton);
+        _gyroButton = createTextButton("Gyroscope", buttonStyle, _GYRO_BUTTON_SCALE);
+        _gyroButton.setPosition(_WORLD_WIDTH / 2 - _gyroButton.getWidth() / 2, (_tablePosition - _gyroButton.getHeight() / 2) +60);
+        _stage.addActor(_gyroButton);
 
-        TextButton touchPadButton = createTextButton("TouchPad", buttonStyle, _TOUCHPAD_BUTTON_SCALE);
-        touchPadButton.setPosition(_WORLD_WIDTH / 2 - touchPadButton.getWidth() / 2, (gyroButton.getY() - touchPadButton.getHeight())-20);
-        _stage.addActor(touchPadButton);
+        _touchPadButton = createTextButton("TouchPad", buttonStyle, _TOUCHPAD_BUTTON_SCALE);
+        _touchPadButton.setPosition(_WORLD_WIDTH / 2 - _touchPadButton.getWidth() / 2, (_gyroButton.getY() - _touchPadButton.getHeight())-20);
+        _stage.addActor(_touchPadButton);
 
-        ImageButton exitButton = createImageButton(_exitButtonRegion, _EXIT_BUTTON_SCALE);
-        exitButton.setPosition(
-            logo.getX() + logo.getWidth() + exitButton.getWidth() - 100,
-            logo.getY() + logo.getHeight() + exitButton.getHeight() - 125
+        _exitButton = createImageButton(_exitButtonRegion, _EXIT_BUTTON_SCALE);
+        _exitButton.setPosition(
+            _logo.getX() + _logo.getWidth() + _exitButton.getWidth() - 100,
+            _logo.getY() + _logo.getHeight() + _exitButton.getHeight() - 125
         );
-        _stage.addActor(exitButton);
+        _stage.addActor(_exitButton);
 
-        TextButton hallOfFameButton = createTextButton("Hall of Fame", buttonStyle, _GYRO_BUTTON_SCALE);
-        hallOfFameButton.setPosition(_WORLD_WIDTH / 2 - hallOfFameButton.getWidth() / 2, (touchPadButton.getY() - hallOfFameButton.getHeight())-20);
+        _hallOfFameButton = createTextButton("Hall of Fame", buttonStyle, _GYRO_BUTTON_SCALE);
+        _hallOfFameButton.setPosition(_WORLD_WIDTH / 2 - _hallOfFameButton.getWidth() / 2, (_touchPadButton.getY() - _hallOfFameButton.getHeight())-20);
 
-        hallOfFameButton.addListener(event -> {
-            _game.setScreen(new HallOfFameScreen(this));
-            return true;
-        });
+        _stage.addActor(_hallOfFameButton);
 
-        _stage.addActor(hallOfFameButton);
+    }
 
-        gyroButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
+    private void setUpListeners(){
+        _gyroButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
             @Override
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
                 if (_DEBUG) Gdx.app.log(_TAG, "Gyroscope button tapped.");
@@ -182,7 +205,7 @@ public class StartScreen extends ScreenAdapter {
             }
         });
 
-        touchPadButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
+        _touchPadButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
             @Override
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
                 if (_DEBUG) Gdx.app.log(_TAG, "TouchPad button tapped.");
@@ -191,7 +214,7 @@ public class StartScreen extends ScreenAdapter {
             }
         });
 
-        exitButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
+        _exitButton.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener() {
             @Override
             public void tap(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int count, int button) {
                 if (_DEBUG) Gdx.app.log(_TAG, "Exit button tapped.");
@@ -199,6 +222,10 @@ public class StartScreen extends ScreenAdapter {
             }
         });
 
+        _hallOfFameButton.addListener(event -> {
+            _game.setScreen(new HallOfFameScreen(this));
+            return true;
+        });
     }
 
     public void savePseudo() {

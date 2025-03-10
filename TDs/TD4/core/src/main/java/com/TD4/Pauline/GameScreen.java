@@ -61,7 +61,6 @@ public class GameScreen extends ScreenAdapter {
 
     private Music _backgroundMusic;
     private Music _gameOverMusic;
-    private Music _explosionMusic;
 
     private World _world;
     private Box2DDebugRenderer _debugRenderer;
@@ -71,7 +70,6 @@ public class GameScreen extends ScreenAdapter {
     private int _score = 0;
 
     private TextureAtlas _atlas;
-    private TextureRegion _backgroundRegion;
     private Array<TextureRegion> _planetRegions;
     private TextureRegion _energyRegion;
     private TextureRegion _alienRegion;
@@ -124,8 +122,6 @@ public class GameScreen extends ScreenAdapter {
     private float[] _backgroundOffsets;
     private float[] _backgroundSpeeds;
 
-    private static final float BACKGROUND_SCROLL_SPEED = 50f;
-
     public GameScreen(StartScreen startScreen, boolean useGyroscope) {
         this._startScreen = startScreen;
         this._useGyroscope = useGyroscope;
@@ -164,7 +160,6 @@ public class GameScreen extends ScreenAdapter {
     @Override
     public void show() {
         if (_DEBUG) Gdx.app.log(_TAG, "GameScreen show() called.");
-        //loadParallaxBackground();
         initializeCameraAndViewport();
         initializeRenderers();
         loadTexturesAndAnimations();
@@ -451,9 +446,7 @@ public class GameScreen extends ScreenAdapter {
         if (_isDying) {
             _deathTimer += delta;
             Gdx.app.log(_TAG, "Death timer: " + _deathTimer);
-
             _cosmonaute.update(delta);
-
             if (_deathTimer >= _DEATH_ANIMATION_DURATION) {
                 setGameOver();
             }
@@ -465,7 +458,6 @@ public class GameScreen extends ScreenAdapter {
         if (Gdx.input.justTouched()) {
             if (!isTouchpadTouched()) {
                 if (_DEBUG) Gdx.app.log(_TAG, "Screen touched");
-
                 Missile missile = _cosmonaute.tirer();
                 if (_DEBUG) Gdx.app.log(_TAG, "missile fired.");
 
@@ -480,10 +472,8 @@ public class GameScreen extends ScreenAdapter {
         updateScore();
         updateAliens(delta);
         updateMissiles(delta);
-
         updateLevel(delta);
         updateElectricField(delta);
-
         cleanDestroyedBodies();
     }
 
@@ -768,10 +758,8 @@ public class GameScreen extends ScreenAdapter {
         for (int i = 0; i < _backgroundLayers.size; i++) {
             _backgroundOffsets[i] -= _backgroundSpeeds[i] * delta * 100;
 
-            // Utiliser la largeur de l'image réelle pour le repositionnement
             float imageWidth = _backgroundLayers.get(i).getRegionWidth();
 
-            // Si toute l'image est sortie, repositionner
             if (_backgroundOffsets[i] <= -imageWidth) {
                 _backgroundOffsets[i] += imageWidth;
             }
@@ -817,9 +805,7 @@ public class GameScreen extends ScreenAdapter {
                 _enemyRockets.removeIndex(i);
             }
         }
-
         _cosmonaute.draw(_batch);
-
         _glyphLayout.setText(_bitmapFont, Integer.toString(_score));
         _bitmapFont.draw(_batch, Integer.toString(_score),
             (_viewport.getWorldWidth() - _glyphLayout.width) / 2,
@@ -829,10 +815,7 @@ public class GameScreen extends ScreenAdapter {
             _glyphLayout.setText(_bitmapFont, _stageMessage);
             _bitmapFont.draw(_batch, _stageMessage, (_WORLD_WIDTH - _glyphLayout.width) / 2, (_WORLD_HEIGHT + _glyphLayout.height) / 2);
         }
-
         _batch.end();
-
-
     }
 
     @Override
